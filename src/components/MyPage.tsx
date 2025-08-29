@@ -4,6 +4,7 @@ import { updatePassword, sendPasswordResetEmail, updateProfile } from 'firebase/
 import { auth } from '../firebase';
 import { getSentimentCriteria, updateSentimentCriteria, type SentimentCriteria } from '../services/sentimentService';
 import Header from './Header';
+import Footer from './Footer';
 import './MyPage.css';
 
 const MyPage: React.FC = () => {
@@ -385,6 +386,7 @@ const MyPage: React.FC = () => {
           </section>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

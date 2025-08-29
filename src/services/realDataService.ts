@@ -1,4 +1,5 @@
 import { doc, getDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { db } from '../firebase';
 
 // 실제 데이터 타입 정의
@@ -29,15 +30,24 @@ interface DateData {
   };
 }
 
-// 가장 최근 날짜 가져오기 (인덱스 문제 해결을 위해 단순화)
+// 가장 최근 날짜 가져오기
 export const getLatestDate = async (): Promise<string> => {
   try {
-    // 인덱스 문제를 피하기 위해 고정된 최신 날짜 사용
-    console.log('고정된 최신 날짜 사용: 2025-08-15');
-    return '2025-08-15';
+    // 오늘 날짜의 하루 전을 기준으로 설정
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const yesterdayString = yesterday.toISOString().split('T')[0];
+    
+    console.log(`오늘 날짜: ${today.toISOString().split('T')[0]}, 기준일자: ${yesterdayString}`);
+    return yesterdayString;
   } catch (error) {
     console.error('최신 날짜 가져오기 오류:', error);
-    return '2025-08-15';
+    // 오류 발생 시 기본값으로 어제 날짜 반환
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    return yesterday.toISOString().split('T')[0];
   }
 };
 
@@ -78,57 +88,43 @@ const getSectorCountsForDate = async (sectorId: string, date: string): Promise<{
   }
 };
 
-// 특정 날짜의 섹터 데이터 가져오기 (detail_dates에서 score 평균 계산)
+// 특정 날짜의 섹터 데이터 가져오기 (sector_score에서 1번 필드 값 사용)
 const getSectorDataForDate = async (sectorId: string, date: string): Promise<DateData | null> => {
   try {
-    console.log(`섹터 ${sectorId}의 ${date} detail_dates 데이터 가져오기...`);
+    console.log(`섹터 ${sectorId}의 ${date} sector_score 데이터 가져오기...`);
     
-    // detail_dates 경로에서 해당 날짜 문서 가져오기
-    const detailDateDocRef = doc(db, `sector_detail/${sectorId}/detail_dates`, date);
-    const detailDateDoc = await getDoc(detailDateDocRef);
+    // sector_score 경로에서 해당 날짜 문서 가져오기
+    const sectorScoreDocRef = doc(db, `sector_score/${date}`);
+    const sectorScoreDoc = await getDoc(sectorScoreDocRef);
     
-    if (detailDateDoc.exists()) {
-      const data = detailDateDoc.data();
-      console.log(`섹터 ${sectorId} ${date} detail_dates 데이터:`, data);
+    if (sectorScoreDoc.exists()) {
+      const data = sectorScoreDoc.data();
+      console.log(`섹터 ${sectorId} ${date} sector_score 데이터:`, data);
       
-      // 각 채널별 score 값 추출 및 평균 계산
-      let averageScore = 0;
-      const allScores: number[] = [];
-      
-      // 데이터의 각 채널을 순회하면서 score 값 수집
-      Object.keys(data).forEach(channelName => {
-        const channelData = data[channelName];
-        if (channelData && typeof channelData === 'object' && 'score' in channelData) {
-          const score = channelData.score;
-          if (typeof score === 'number' && !isNaN(score)) {
-            allScores.push(score);
-            console.log(`섹터 ${sectorId} 채널 "${channelName}" score:`, score);
+      // 해당 섹터의 1번 필드 값 찾기
+      const sectorData = data[sectorId];
+      if (sectorData && sectorData[1]) {
+        const score = sectorData[1];
+        console.log(`섹터 ${sectorId} ${date} 1번 필드 값:`, score);
+        
+        return {
+          score: score,
+          counts: {
+            positive: 0, // counts는 별도로 계산
+            negative: 0,
+            neutral: 0
           }
-        }
-      });
-      
-      // 수집된 모든 score의 평균 계산
-      if (allScores.length > 0) {
-        averageScore = allScores.reduce((sum, score) => sum + score, 0) / allScores.length;
-        console.log(`섹터 ${sectorId} 전체 score 평균:`, averageScore, '(', allScores.length, '개 채널)');
+        };
       } else {
-        console.log(`섹터 ${sectorId}: score 데이터를 찾을 수 없습니다.`);
+        console.log(`섹터 ${sectorId} ${date} 1번 필드 데이터가 없습니다.`);
+        return null;
       }
-      
-      // dates 경로에서 counts 데이터 가져오기
-      const countsData = await getSectorCountsForDate(sectorId, date);
-      const finalCounts = countsData || { positive: 0, negative: 0, neutral: 0 };
-      
-      return {
-        score: averageScore,
-        counts: finalCounts
-      };
     } else {
-      console.log(`섹터 ${sectorId} ${date} detail_dates 문서가 존재하지 않습니다.`);
+      console.log(`섹터 ${sectorId} ${date} sector_score 문서가 존재하지 않습니다.`);
       return null;
     }
   } catch (error) {
-    console.error(`섹터 ${sectorId} 날짜 ${date} detail_dates 데이터 가져오기 오류:`, error);
+    console.error(`섹터 ${sectorId} 날짜 ${date} sector_score 가져오기 오류:`, error);
     return null;
   }
 };
@@ -222,30 +218,111 @@ const calculateReactionRate = (counts: { positive: number; negative: number; neu
 export const getRealStockData = async (targetDate: string = '2025-08-18'): Promise<StockData[]> => {
   try {
     console.log('실제 섹터 데이터 가져오기 시작... (sector_score 기반)', targetDate);
-    const scoreDocRef = doc(db, 'sector_score', targetDate);
-    const scoreDocSnap = await getDoc(scoreDocRef);
-
-    if (!scoreDocSnap.exists()) {
-      console.warn(`sector_score/${targetDate} 문서를 찾을 수 없습니다.`);
+    
+    // Firebase 인증 상태 확인
+    const auth = getAuth();
+    const user = auth.currentUser;
+    
+    if (!user) {
+      console.error('사용자가 인증되지 않았습니다.');
       return [];
     }
-
-    const data = scoreDocSnap.data() as Record<string, any>;
+    
+    console.log('인증된 사용자:', user.uid);
+    
+    // 기준 날짜와 전전일 날짜 계산
+    const baseDate = new Date(targetDate);
+    const previousDate = new Date(baseDate);
+    previousDate.setDate(baseDate.getDate() - 1);
+    const previousDateString = previousDate.toISOString().split('T')[0];
+    
+    console.log(`기준 날짜: ${targetDate}, 전전일 날짜: ${previousDateString}`);
+    
+    // 기준 날짜 데이터 가져오기 (새로운 구조 시도)
+    let data: Record<string, any> = {};
+    let previousData: Record<string, any> = {};
+    
+    try {
+      // 올바른 구조: sector_score/2025-08-23 문서 하위에 섹터들이 있음
+      console.log(`${targetDate} 날짜의 섹터 데이터를 가져오는 중...`);
+      
+      // 타임아웃 설정 (10초)
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('데이터 로딩 타임아웃')), 10000);
+      });
+      
+      const dataPromise = (async () => {
+        // sector_score/2025-08-23 문서 가져오기
+        const scoreDocRef = doc(db, 'sector_score', targetDate);
+        const scoreDocSnap = await getDoc(scoreDocRef);
+        
+        if (scoreDocSnap.exists()) {
+          const scoreData = scoreDocSnap.data();
+          console.log(`${targetDate} 문서에서 데이터 발견:`, Object.keys(scoreData).length, '개 섹터');
+          
+          // 각 섹터의 데이터를 data 객체에 저장
+          for (const [sectorId, sectorData] of Object.entries(scoreData)) {
+            data[sectorId] = sectorData;
+          }
+        } else {
+          console.log(`${targetDate} 문서가 존재하지 않습니다.`);
+          return;
+        }
+        
+        // 전전일 데이터도 가져오기 (변화량 계산용)
+        const previousScoreDocRef = doc(db, 'sector_score', previousDateString);
+        const previousScoreDocSnap = await getDoc(previousScoreDocRef);
+        
+        if (previousScoreDocSnap.exists()) {
+          const previousScoreData = previousScoreDocSnap.data();
+          console.log(`${previousDateString} 전전일 데이터 발견:`, Object.keys(previousScoreData).length, '개 섹터');
+          
+          // 각 섹터의 전전일 데이터를 previousData 객체에 저장
+          for (const [sectorId, sectorData] of Object.entries(previousScoreData)) {
+            previousData[sectorId] = sectorData;
+          }
+        }
+      })();
+      
+      // 타임아웃과 데이터 로딩을 경쟁시킴
+      await Promise.race([dataPromise, timeoutPromise]);
+      
+      // 데이터를 찾지 못한 경우
+      if (Object.keys(data).length === 0) {
+        console.log(`${targetDate} 날짜에 섹터 데이터를 찾을 수 없습니다.`);
+        return [];
+      }
+    } catch (error) {
+      console.error('데이터 가져오기 중 오류:', error);
+      return [];
+    }
+    
     const sectorDataList: StockData[] = [];
 
     for (const [sectorId, sectorValue] of Object.entries(data)) {
       try {
-        // 전일(0), 전전일(1) 데이터 추출
+        // 기준 날짜의 1번 필드 값 (종합점수)
+        const currentScore = sectorValue?.['1'] || 0;
+        
+        // 전전일의 1번 필드 값
+        const previousScore = previousData[sectorId]?.['1'] || 0;
+        
+        // 전전일 차이 계산 (백분율)
+        const scoreChange = previousScore > 0 ? ((currentScore - previousScore) / previousScore) * 100 : 0;
+        
+        // 소수점 둘째자리에서 반올림하여 소수 첫째자리까지
+        const roundedCurrentScore = parseFloat(currentScore.toFixed(1));
+        const roundedScoreChange = parseFloat(scoreChange.toFixed(1));
+        
+        // 전일 데이터 카운트 (기존 로직 유지)
         const d0 = sectorValue?.['0'] || {};
-        const d1 = sectorValue?.['1'] || {};
-
-        // 전일 데이터 카운트
         const p0: number = Number(d0.positive || d0.pos || 0);
         const n0: number = Number(d0.negative || d0.neg || 0);
         const u0: number = Number(d0.neutral || d0.neu || 0);
         const t0 = p0 + n0 + u0;
 
         // 전전일 데이터 카운트
+        const d1 = sectorValue?.['1'] || {};
         const p1: number = Number(d1.positive || d1.pos || 0);
         const n1: number = Number(d1.negative || d1.neg || 0);
         const u1: number = Number(d1.neutral || d1.neu || 0);
@@ -260,16 +337,12 @@ export const getRealStockData = async (targetDate: string = '2025-08-18'): Promi
         const negativePct1 = t1 > 0 ? Math.round((n1 / t1) * 100) : 0;
         const neutralPct1  = t1 > 0 ? Math.round((u1 / t1) * 100) : 0;
 
-        // 종합점수는 전일 긍정 비율을 대표값으로 사용, 변화는 p.p. 차이
-        const totalScore = positivePct0;
-        const scoreDiff = positivePct0 - positivePct1;
-
         // 반응 비율: 전일 긍정 비율
         const reactionRate = positivePct0;
-        const reactionDiff = positiveDiff;
+        const reactionDiff = positivePct0 - positivePct1;
 
         // 나머지 컬럼의 변화도 p.p 차이로 표기
-        const positiveChange = positiveDiff;
+        const positiveChange = positivePct0 - positivePct1;
         const negativeChange = negativePct0 - negativePct1;
         const neutralChange  = neutralPct0 - neutralPct1;
 
@@ -277,12 +350,12 @@ export const getRealStockData = async (targetDate: string = '2025-08-18'): Promi
           id: sectorId,
           name: sectorId,
           sector: sectorId,
-          totalScore: totalScore,
+          totalScore: roundedCurrentScore, // 1번 필드 값 사용
           positiveOpinions: p0,
           negativeOpinions: n0,
           neutralOpinions: u0,
           reactionRate: reactionRate,
-          scoreChange: scoreDiff,
+          scoreChange: roundedScoreChange, // 전전일 차이 (1번 필드 값 차이)
           positiveChange: positiveChange,
           negativeChange: negativeChange,
           neutralChange: neutralChange,
@@ -296,10 +369,22 @@ export const getRealStockData = async (targetDate: string = '2025-08-18'): Promi
     }
 
     console.log('총 가져온 섹터 수:', sectorDataList.length);
-    // 전일 긍정 비율 기준 내림차순 정렬
+    // 1번 필드 값 기준 내림차순 정렬
     return sectorDataList.sort((a, b) => b.totalScore - a.totalScore);
   } catch (error) {
     console.error('실제 섹터 데이터 가져오기 오류:', error);
+    
+    // Firebase 관련 오류 상세 로깅
+    if (error instanceof Error) {
+      console.error('오류 메시지:', error.message);
+      console.error('오류 스택:', error.stack);
+    }
+    
+    // 400 Bad Request 오류인 경우
+    if (error && typeof error === 'object' && 'code' in error) {
+      console.error('Firebase 오류 코드:', (error as any).code);
+    }
+    
     return [];
   }
 };

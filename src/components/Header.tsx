@@ -1,68 +1,71 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import './Header.css';
 
 interface HeaderProps {
-  user: any;
+  currentPage?: string;
+  showLogout?: boolean;
+  showMypage?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ user }) => {
+const Header: React.FC<HeaderProps> = ({ 
+  currentPage = 'home', 
+  showLogout = true, 
+  showMypage = true 
+}) => {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
-      console.log('로그아웃 성공');
+      await auth.signOut();
+      navigate('/');
     } catch (error) {
       console.error('로그아웃 오류:', error);
     }
   };
 
-  const handleMyPageClick = () => {
-    navigate('/mypage');
-  };
-
   return (
-    <header className="app-header">
-      <div className="header-container">
-        <div className="header-left">
-          <h1 className="app-title" onClick={() => navigate('/')}>
-            AntOpinion
-          </h1>
+    <>
+      {/* 헤더 배경 */}
+      <div className="dashboard-header"></div>
+      
+      {/* 네비게이션 메뉴 */}
+      <div className="nav-menu">
+        <div 
+          className={`nav-item ${currentPage === 'home' ? 'active' : 'inactive'}`}
+          onClick={() => navigate('/')}
+        >
+          홈
         </div>
-        
-        <div className="header-center">
-          <nav className="nav-menu">
-            <button className="nav-btn" onClick={() => navigate('/')}>
-              홈
-            </button>
-            <button className="nav-btn">
-              즐겨찾기
-            </button>
-          </nav>
-        </div>
-
-        <div className="header-right">
-          {user && (
-            <button className="mypage-btn" onClick={handleMyPageClick}>
-              마이페이지
-            </button>
-          )}
-          
-          {user ? (
-            <button className="logout-btn" onClick={handleLogout}>
-              로그아웃
-            </button>
-          ) : (
-            <button className="login-btn" onClick={() => navigate('/login')}>
-              로그인
-            </button>
-          )}
+        <div 
+          className={`nav-item ${currentPage === 'favorites' ? 'active' : 'inactive'}`}
+          onClick={() => navigate('/favorites')}
+        >
+          즐겨찾기
         </div>
       </div>
-    </header>
+
+      {/* 로그아웃 버튼 */}
+      <button className="logout-btn" onClick={handleLogout}>
+        <div className="logout-text">로그아웃</div>
+      </button>
+      
+      {/* 마이페이지 버튼 */}
+      {showMypage && (
+        <button className="mypage-btn" onClick={() => navigate('/mypage')}>
+          <div className="mypage-text">마이페이지</div>
+        </button>
+      )}
+      
+      {/* 로고 */}
+      <img 
+        className="logo" 
+        src="/img/mainLogo.png" 
+        alt="로고" 
+        onClick={() => navigate('/')} 
+      />
+    </>
   );
 };
 

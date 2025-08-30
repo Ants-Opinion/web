@@ -215,7 +215,9 @@ const calculateReactionRate = (counts: { positive: number; negative: number; neu
 };
 
 // 실제 섹터 데이터 가져오기
-export const getRealStockData = async (targetDate: string = '2025-08-18'): Promise<StockData[]> => {
+export const getRealStockData = async (targetDate: string): Promise<StockData[]> => {
+  console.log('🚀 getRealStockData 함수 시작:', targetDate);
+  
   try {
     console.log('실제 섹터 데이터 가져오기 시작... (sector_score 기반)', targetDate);
     
@@ -238,71 +240,78 @@ export const getRealStockData = async (targetDate: string = '2025-08-18'): Promi
     
     console.log(`기준 날짜: ${targetDate}, 전전일 날짜: ${previousDateString}`);
     
-    // 기준 날짜 데이터 가져오기 (새로운 구조 시도)
+    // 기준 날짜 데이터 가져오기
     let data: Record<string, any> = {};
     let previousData: Record<string, any> = {};
     
-    try {
-      // 올바른 구조: sector_score/2025-08-23 문서 하위에 섹터들이 있음
-      console.log(`${targetDate} 날짜의 섹터 데이터를 가져오는 중...`);
+    // sector_score/2025-08-23 문서 가져오기
+    const scoreDocRef = doc(db, 'sector_score', targetDate);
+    const scoreDocSnap = await getDoc(scoreDocRef);
+    
+    if (scoreDocSnap.exists()) {
+      const scoreData = scoreDocSnap.data();
+      console.log(`✅ ${targetDate} 문서에서 데이터 발견:`, Object.keys(scoreData).length, '개 섹터');
+      console.log('📊 발견된 섹터들:', Object.keys(scoreData));
       
-      // 타임아웃 설정 (10초)
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('데이터 로딩 타임아웃')), 10000);
-      });
-      
-      const dataPromise = (async () => {
-        // sector_score/2025-08-23 문서 가져오기
-        const scoreDocRef = doc(db, 'sector_score', targetDate);
-        const scoreDocSnap = await getDoc(scoreDocRef);
-        
-        if (scoreDocSnap.exists()) {
-          const scoreData = scoreDocSnap.data();
-          console.log(`${targetDate} 문서에서 데이터 발견:`, Object.keys(scoreData).length, '개 섹터');
-          
-          // 각 섹터의 데이터를 data 객체에 저장
-          for (const [sectorId, sectorData] of Object.entries(scoreData)) {
-            data[sectorId] = sectorData;
-          }
-        } else {
-          console.log(`${targetDate} 문서가 존재하지 않습니다.`);
-          return;
-        }
-        
-        // 전전일 데이터도 가져오기 (변화량 계산용)
-        const previousScoreDocRef = doc(db, 'sector_score', previousDateString);
-        const previousScoreDocSnap = await getDoc(previousScoreDocRef);
-        
-        if (previousScoreDocSnap.exists()) {
-          const previousScoreData = previousScoreDocSnap.data();
-          console.log(`${previousDateString} 전전일 데이터 발견:`, Object.keys(previousScoreData).length, '개 섹터');
-          
-          // 각 섹터의 전전일 데이터를 previousData 객체에 저장
-          for (const [sectorId, sectorData] of Object.entries(previousScoreData)) {
-            previousData[sectorId] = sectorData;
-          }
-        }
-      })();
-      
-      // 타임아웃과 데이터 로딩을 경쟁시킴
-      await Promise.race([dataPromise, timeoutPromise]);
-      
-      // 데이터를 찾지 못한 경우
-      if (Object.keys(data).length === 0) {
-        console.log(`${targetDate} 날짜에 섹터 데이터를 찾을 수 없습니다.`);
-        return [];
+      // 각 섹터의 데이터를 data 객체에 저장
+      for (const [sectorId, sectorData] of Object.entries(scoreData)) {
+        data[sectorId] = sectorData;
       }
-    } catch (error) {
-      console.error('데이터 가져오기 중 오류:', error);
+    } else {
+      console.log(`❌ ${targetDate} 문서가 존재하지 않습니다.`);
+      console.log('🔍 빈 배열 반환 - 데이터 없음');
+      console.log('📝 함수 종료: 빈 배열 반환');
       return [];
     }
     
+    // 전전일 데이터도 가져오기 (변화량 계산용)
+    const previousScoreDocRef = doc(db, 'sector_score', previousDateString);
+    const previousScoreDocSnap = await getDoc(previousScoreDocRef);
+    
+    if (previousScoreDocSnap.exists()) {
+      const previousScoreData = previousScoreDocSnap.data();
+      console.log(`${previousDateString} 전전일 데이터 발견:`, Object.keys(previousScoreData).length, '개 섹터');
+      
+      // 각 섹터의 전전일 데이터를 previousData 객체에 저장
+      for (const [sectorId, sectorData] of Object.entries(previousScoreData)) {
+        previousData[sectorId] = sectorData;
+      }
+    }
+    
+    // 데이터를 찾지 못한 경우
+    if (Object.keys(data).length === 0) {
+      console.log(`⚠️ ${targetDate} 날짜에 섹터 데이터를 찾을 수 없습니다.`);
+      console.log('📊 data 객체 내용:', data);
+      console.log('📊 previousData 객체 내용:', previousData);
+      console.log('📝 함수 종료: 빈 배열 반환 (데이터 없음)');
+      return [];
+    }
+    
+    console.log(`✅ ${targetDate} 날짜에 ${Object.keys(data).length}개 섹터 데이터 발견:`, Object.keys(data));
+    
+    // 섹터 데이터를 StockData 형태로 변환
     const sectorDataList: StockData[] = [];
 
     for (const [sectorId, sectorValue] of Object.entries(data)) {
       try {
+        // 데이터 유효성 검증
+        if (!sectorValue || typeof sectorValue !== 'object') {
+          console.log(`섹터 ${sectorId}: 유효하지 않은 데이터 구조, 건너뜀`);
+          continue;
+        }
+        
+        // 0번과 1번 문서 존재 여부 확인
+        if (!sectorValue['0'] || !sectorValue['1']) {
+          console.log(`섹터 ${sectorId}: 0번 또는 1번 문서 누락, 건너뜀`);
+          continue;
+        }
+        
         // 기준 날짜의 1번 필드 값 (종합점수)
-        const currentScore = sectorValue?.['1'] || 0;
+        const currentScore = sectorValue['1'];
+        if (typeof currentScore !== 'number' || isNaN(currentScore)) {
+          console.log(`섹터 ${sectorId}: 유효하지 않은 점수 데이터, 건너뜀`);
+          continue;
+        }
         
         // 전전일의 1번 필드 값
         const previousScore = previousData[sectorId]?.['1'] || 0;
@@ -314,15 +323,21 @@ export const getRealStockData = async (targetDate: string = '2025-08-18'): Promi
         const roundedCurrentScore = parseFloat(currentScore.toFixed(1));
         const roundedScoreChange = parseFloat(scoreChange.toFixed(1));
         
-        // 전일 데이터 카운트 (기존 로직 유지)
-        const d0 = sectorValue?.['0'] || {};
+        // 전일 데이터 카운트 (0번 문서)
+        const d0 = sectorValue['0'];
         const p0: number = Number(d0.positive || d0.pos || 0);
         const n0: number = Number(d0.negative || d0.neg || 0);
         const u0: number = Number(d0.neutral || d0.neu || 0);
         const t0 = p0 + n0 + u0;
+        
+        // 데이터가 모두 0인 경우 건너뜀 (유효하지 않은 데이터)
+        if (t0 === 0) {
+          console.log(`섹터 ${sectorId}: 모든 카운트가 0, 건너뜀`);
+          continue;
+        }
 
-        // 전전일 데이터 카운트
-        const d1 = sectorValue?.['1'] || {};
+        // 전전일 데이터 카운트 (1번 문서)
+        const d1 = sectorValue['1'];
         const p1: number = Number(d1.positive || d1.pos || 0);
         const n1: number = Number(d1.negative || d1.neg || 0);
         const u1: number = Number(d1.neutral || d1.neu || 0);
@@ -346,6 +361,14 @@ export const getRealStockData = async (targetDate: string = '2025-08-18'): Promi
         const negativeChange = negativePct0 - negativePct1;
         const neutralChange  = neutralPct0 - neutralPct1;
 
+        console.log(`섹터 ${sectorId} 데이터 처리 완료:`, {
+          score: roundedCurrentScore,
+          positive: p0,
+          negative: n0,
+          neutral: u0,
+          total: t0
+        });
+
         sectorDataList.push({
           id: sectorId,
           name: sectorId,
@@ -368,9 +391,13 @@ export const getRealStockData = async (targetDate: string = '2025-08-18'): Promi
       }
     }
 
-    console.log('총 가져온 섹터 수:', sectorDataList.length);
+    console.log(`🎯 총 가져온 섹터 수: ${sectorDataList.length}개`);
+    console.log('📊 최종 반환할 데이터:', sectorDataList.map(s => ({ sector: s.sector, score: s.totalScore })));
     // 1번 필드 값 기준 내림차순 정렬
-    return sectorDataList.sort((a, b) => b.totalScore - a.totalScore);
+    const sortedData = sectorDataList.sort((a, b) => b.totalScore - a.totalScore);
+    console.log('📝 함수 종료: 정렬된 데이터 반환');
+    return sortedData;
+    
   } catch (error) {
     console.error('실제 섹터 데이터 가져오기 오류:', error);
     

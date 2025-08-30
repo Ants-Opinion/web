@@ -148,10 +148,13 @@
 /* Section Info */
 .section-info {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 12px;
-  margin-top: 20px; /* 메인 콘텐츠에서 이미 상단 여백을 제공하므로 줄임 */
-  margin-left: 15px;
+  margin: 0 auto 10px auto;
+  width: 90%;
+  max-width: 1200px;
+  padding: 10px 20px;
+  box-sizing: border-box;
   white-space: nowrap;
 }
 
@@ -190,8 +193,9 @@
 
 .section-details {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
   white-space: nowrap;
 }
 
@@ -200,8 +204,8 @@
   font-size: 18px;
 }
 
-/* Time Filter */
-.time-filter-container {
+/* Time Filter - Deprecated (replaced by filter-date-container) */
+/* .time-filter-container {
   margin-top: 32px;
   margin-left: 15px;
 }
@@ -235,7 +239,7 @@
 
 .time-filter-btn.active:hover {
   background: #0D6BC7;
-}
+} */
 
 .section-date {
   color: #0B1215;
@@ -245,12 +249,30 @@
   white-space: nowrap;
 }
 
+/* Filter and Date Container */
+.filter-date-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px auto 20px auto;
+  width: 90%;
+  max-width: 1200px;
+  padding: 0 20px;
+  box-sizing: border-box;
+  min-height: 60px;
+  position: relative;
+}
+
 /* Filter Buttons */
 .filter-buttons {
-  display: flex;
+  display: flex !important;
   gap: 8px;
-  margin-top: 44px;
-  margin-left: 15px;
+  flex-shrink: 0 !important;
+  position: absolute !important;
+  left: 20px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  z-index: 10 !important;
 }
 
 .filter-btn {
@@ -269,10 +291,11 @@
   align-items: center;
   justify-content: center;
   white-space: nowrap;
+  transition: all 0.2s ease;
 }
 
 .filter-btn.active {
-  background: #F1F1F1;
+  background: #E0E0E0;
   color: #0B1215;
 }
 
@@ -281,18 +304,25 @@
   color: #676767;
 }
 
+.filter-btn:hover {
+  background: #E8E8E8;
+}
+
 /* Date Selector */
 .date-selector {
-  position: absolute;
-  right: 15px;
-  top: 48px;
-  display: flex;
-  align-items: center;
+  display: flex !important;
+  align-items: center !important;
   gap: 10px;
   background: white;
   border-radius: 19px;
   padding: 9px 8px;
   white-space: nowrap;
+  flex-shrink: 0 !important;
+  position: absolute !important;
+  right: 20px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  z-index: 10 !important;
 }
 
 .date-arrow {
@@ -304,6 +334,19 @@
   color: #676767;
   font-size: 16px;
   cursor: pointer;
+  transition: color 0.2s ease;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.date-arrow:hover {
+  color: #0B1215;
+}
+
+.date-arrow:disabled {
+  color: #CCCCCC;
+  cursor: not-allowed;
 }
 
 .date-display {
@@ -312,14 +355,28 @@
   font-family: Pretendard;
   font-weight: 500;
   white-space: nowrap;
+  min-width: 120px;
+  text-align: center;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.date-display:hover {
+  background: #F8F9FA;
+  color: #107AEB;
 }
 
 /* Content Cards */
 .content-cards {
-  margin-top: 100px;
+  margin: 20px auto 0 auto;
+  width: 90%;
+  max-width: 1200px;
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: 24px;
 }
 
 /* Card Base Styles */
@@ -328,13 +385,13 @@
 .reaction-chart-card {
   background: white;
   border-radius: 30px;
-  padding: 24px;
+  padding: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Card Header */
 .card-header {
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 .card-header h2 {
@@ -359,6 +416,7 @@
   font-size: 14px;
   font-family: Pretendard;
   font-weight: 500;
+  margin-bottom: 20px;
 }
 
 /* Reaction Ratio Card */
@@ -376,39 +434,43 @@
 .chart-container {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 40px;
-  margin-top: 20px;
+  margin-top: 0;
   position: relative;
   z-index: 2;
-  padding: 20px;
-  margin: 20px -20px;
+  padding: 0;
+  margin: 0 -20px;
 }
 
 .donut-chart {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 200px;
-  height: 200px;
+  width: 280px;
+  height: 280px;
   flex-shrink: 0;
-  overflow: visible;
+  overflow: hidden;
   position: relative;
   z-index: 3;
   margin: 0;
+  padding: 0;
 }
 
 .donut-chart svg {
   width: 100%;
   height: 100%;
-  max-width: 200px;
-  max-height: 200px;
+  max-width: 280px;
+  max-height: 280px;
   position: relative;
   z-index: 4;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+  margin: 0;
+  padding: 0;
 }
 
 .donut-chart-center {
-  font-size: 18px;
+  font-size: 24px;
   font-family: Pretendard;
   font-weight: 600;
   fill: #0B1215;
@@ -421,10 +483,11 @@
 .chart-legend {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   flex-shrink: 0;
   position: relative;
   z-index: 2;
+  margin-left: 20px;
 }
 
 .legend-item {
@@ -467,13 +530,17 @@
 
 /* Reaction Summary Card */
 .reaction-summary-card {
-  padding: 32px;
-  background: #FAFAFA;
-  border-radius: 12px;
+  padding: 24px;
+  background: white;
+  border-radius: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .reaction-section {
-  margin-bottom: 30px;
+  margin-bottom: 32px;
+  padding: 20px;
+  border-radius: 16px;
+  background: #FAFAFA;
 }
 
 .reaction-section:last-child {
@@ -484,15 +551,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 16px;
 }
 
 .reaction-header h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 18px;
   font-family: Pretendard;
   font-weight: 600;
-  line-height: 25.60px;
+  line-height: 1.4;
 }
 
 .reaction-header h3.positive {
@@ -509,38 +576,98 @@
 
 .view-reactions-btn {
   height: 39px;
-  padding: 12px;
+  padding: 12px 16px;
   background: #F1F1F1;
   border-radius: 9px;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  transition: all 0.2s ease;
+  color: #0B1215 !important;
+}
+
+.view-reactions-btn:hover {
+  background: #E5E5E5;
 }
 
 .btn-icon {
   width: 16px;
   height: 16px;
-  background: #0B1215;
-  border-radius: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 10px;
-  font-weight: bold;
+}
+
+.btn-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .view-reactions-btn span:last-child {
-  color: #0B1215;
+  color: #0B1215 !important;
   font-size: 14px;
   font-family: Pretendard;
   font-weight: 500;
 }
 
+.view-reactions-btn.active span:last-child {
+  color: #0B1215 !important; /* 검정색 - Icon_search=active.png인 경우 */
+}
+
+.view-reactions-btn.inactive span:last-child {
+  color: #676767 !important; /* 짙은 회색 - Icon_search=inactive.png인 경우 */
+}
+
+/* 추가적인 강제 스타일 적용 */
+.view-reactions-btn button span:last-child,
+.view-reactions-btn .btn-text {
+  color: #0B1215 !important;
+}
+
+.view-reactions-btn.active button span:last-child,
+.view-reactions-btn.active .btn-text {
+  color: #0B1215 !important;
+}
+
+.view-reactions-btn.inactive button span:last-child,
+.view-reactions-btn.inactive .btn-text {
+  color: #676767 !important;
+}
+
+/* 모든 텍스트 요소에 대한 강제 색상 적용 */
+.view-reactions-btn * {
+  color: inherit !important;
+}
+
+.view-reactions-btn.active * {
+  color: #0B1215 !important;
+}
+
+.view-reactions-btn.inactive * {
+  color: #676767 !important;
+}
+
+/* btn-text 클래스에 대한 명시적인 스타일 */
+.btn-text {
+  color: #0B1215 !important;
+  font-size: 14px;
+  font-family: Pretendard;
+  font-weight: 500;
+}
+
+.view-reactions-btn.active .btn-text {
+  color: #0B1215 !important;
+}
+
+.view-reactions-btn.inactive .btn-text {
+  color: #676767 !important;
+}
+
 .reaction-content {
-  margin-top: 16px;
+  margin-top: 0;
 }
 
 .reaction-content h4 {
@@ -548,16 +675,16 @@
   font-size: 16px;
   font-family: Pretendard;
   font-weight: 500;
-  line-height: 25.60px;
-  margin: 0 0 16px 0;
+  line-height: 1.5;
+  margin: 0 0 12px 0;
 }
 
 .reaction-content p {
-  color: #0B1215;
+  color: #676767;
   font-size: 14px;
   font-family: Pretendard;
   font-weight: 400;
-  line-height: 25.20px;
+  line-height: 1.6;
   margin: 0;
 }
 

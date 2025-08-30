@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -9,9 +9,11 @@ import { getRealStockData } from '../services/realDataService';
 import Header from './Header';
 import Footer from './Footer';
 import ReactionModal from './ReactionModal';
+import Calendar from './Calendar';
 import './SectorDetail.css';
 
 interface ReactionItem {
+  id: string;
   title: string;
   content: string;
   source: string;
@@ -19,10 +21,27 @@ interface ReactionItem {
   views: number;
 }
 
+interface DetailReactionItem {
+  id: string;
+  title: string;
+  content: string;
+  source: string;
+  time: string;
+  views: number;
+  score: number;
+  sector: string;
+  date: string;
+}
+
 interface SectorDetailData {
   sectorId: string;
   date: string;
   summary: {
+    positive: string;
+    negative: string;
+    neutral: string;
+  };
+  headline: {
     positive: string;
     negative: string;
     neutral: string;
@@ -47,10 +66,13 @@ const SectorDetail: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'positive' | 'negative' | 'neutral'>('positive');
   const [modalTitle, setModalTitle] = useState('');
+  const [modalReactions, setModalReactions] = useState<ReactionItem[]>([]);
   const [sentimentCriteria, setSentimentCriteria] = useState<SentimentCriteria | null>(null);
   const [timeFilter, setTimeFilter] = useState<'1일' | '1주' | '1개월'>('1일');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [chartTab, setChartTab] = useState<'대중 반응' | '종합점수'>('대중 반응');
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [calendarPosition, setCalendarPosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     // 사용자 인증 상태 확인
@@ -73,11 +95,18 @@ const SectorDetail: React.FC = () => {
     setTimeFilter(decodedFilter as '1일' | '1주' | '1개월');
     setSelectedDate(decodedDate);
     console.log(`선택된 시간 필터: ${decodedFilter}, 선택된 날짜: ${decodedDate}`);
+    
+    // 1일 필터인데 날짜가 없으면 기본값으로 오늘 날짜 설정
+    if (decodedFilter === '1일' && !decodedDate) {
+      const today = new Date().toISOString().split('T')[0];
+      setSelectedDate(today);
+      console.log(`1일 필터에 날짜가 없어 기본값으로 오늘 날짜 설정: ${today}`);
+    }
   }, [searchParams]);
 
 
 
-  useEffect(() => {
+    useEffect(() => {
     const fetchSectorDetail = async () => {
       if (!sectorId) return;
 
@@ -86,7 +115,7 @@ const SectorDetail: React.FC = () => {
         setError('');
         console.log(`=== 섹터 ${sectorId} 세부 정보 로딩 시작 ===`);
         console.log(`선택된 시간 필터: ${timeFilter}`);
-        console.log(`선택된 날짜: ${selectedDate || '없음 (오늘 날짜 사용)'}`);
+        console.log(`선택된 날짜: ${selectedDate || '없음'}`);
         console.log(`현재 시간: ${new Date().toISOString()}`);
 
         // 감정 분류 기준 초기화 및 로드
@@ -121,10 +150,15 @@ const SectorDetail: React.FC = () => {
             counts: sectorData.counts,
             summaryKeys: Object.keys(sectorData.summary),
             summaryValues: sectorData.summary,
+            headlineKeys: Object.keys(sectorData.headline),
+            headlineValues: sectorData.headline,
             reactionsCount: sectorData.reactions.length,
             reactionsSample: sectorData.reactions.slice(0, 2), // 처음 2개만 표시
             icon: sectorData.icon
           });
+          console.log('데이터 소스 경로:', `sector_detail/${sectorData.sectorId}/dates/${sectorData.date}`);
+          console.log('로딩된 데이터 날짜:', sectorData.date);
+          console.log('선택된 날짜:', selectedDate || '없음');
         } else {
           // 선택한 날짜에 데이터가 없는 경우
           const selectedDateDisplay = selectedDate ? new Date(selectedDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : '오늘';
@@ -164,8 +198,13 @@ const SectorDetail: React.FC = () => {
       }
     };
 
-    fetchSectorDetail();
-  }, [sectorId, timeFilter, selectedDate]);
+    // selectedDate가 있을 때만 실행
+    if (selectedDate) {
+      fetchSectorDetail();
+    } else {
+      console.log('selectedDate가 없어 데이터 로딩을 건너뜁니다.');
+    }
+  }, [sectorId, timeFilter, selectedDate]); // selectedDate가 변경될 때만 재실행
 
 
 
@@ -199,6 +238,7 @@ const SectorDetail: React.FC = () => {
       sectorId: firstAvailableData.sectorId,
       date: baseDate, // Display the base date for the aggregated view
       summary: firstAvailableData.summary,
+      headline: firstAvailableData.headline, // 헤드라인 정보 포함
       reactions: aggregatedReactions,
       counts: aggregatedCounts,
       icon: firstAvailableData.icon, // 아이콘 정보 포함
@@ -235,6 +275,7 @@ const SectorDetail: React.FC = () => {
       sectorId: firstAvailableData.sectorId,
       date: baseDate, // Display the base date for the aggregated view
       summary: firstAvailableData.summary,
+      headline: firstAvailableData.headline, // 헤드라인 정보 포함
       reactions: aggregatedReactions,
       counts: aggregatedCounts,
       icon: firstAvailableData.icon, // 아이콘 정보 포함
@@ -257,10 +298,9 @@ const SectorDetail: React.FC = () => {
         sectorData = await tryGetFromSectorScore(sectorId, date);
       }
       
-      // 3. 여전히 찾지 못한 경우 다른 날짜에서 시도
+      // 3. 다른 날짜 검색은 하지 않음 (선택된 날짜만 사용)
       if (!sectorData) {
-        console.log(`현재 날짜에서 데이터를 찾지 못함, 다른 날짜에서 시도...`);
-        sectorData = await tryGetFromOtherDates(sectorId, date);
+        console.log(`선택된 날짜 ${date}에서 데이터를 찾을 수 없습니다.`);
       }
       
       return sectorData;
@@ -271,6 +311,7 @@ const SectorDetail: React.FC = () => {
   };
 
   // sector_detail 컬렉션에서 데이터 가져오기 시도
+  // 데이터 경로: /sector_detail/IT/dates/2025-08-23
   const tryGetFromSectorDetail = async (sectorId: string, date: string): Promise<SectorDetailData | null> => {
     try {
       // 새로운 데이터베이스 구조: /sector_detail/IT/dates/2025-08-23
@@ -280,13 +321,47 @@ const SectorDetail: React.FC = () => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         console.log(`sector_detail에서 데이터 발견: ${sectorId}/${date}`, data);
+        console.log('데이터 구조:', {
+          summary: data.summary,
+          headline: data.headline, // 헤드라인 정보 포함
+          reactions: data.reactions,
+          counts: data.counts,
+          icon: data.icon
+        });
+        
+        // Firebase 콘솔에서 보이는 데이터 구조에 맞게 처리
+        // summary: { positive: { headline: "...", summary: "..." }, negative: {...}, neutral: {...} }
+        const processedSummary = {
+          positive: data.summary?.positive?.summary || data.summary?.positive || '요약 없음',
+          negative: data.summary?.negative?.summary || data.summary?.negative || '요약 없음',
+          neutral: data.summary?.neutral?.summary || data.summary?.neutral || '요약 없음'
+        };
+
+        // headline 데이터 처리
+        const processedHeadline = {
+          positive: data.summary?.positive?.headline || data.headline?.positive || '헤드라인 없음',
+          negative: data.summary?.negative?.headline || data.headline?.negative || '헤드라인 없음',
+          neutral: data.summary?.neutral?.headline || data.headline?.neutral || '헤드라인 없음'
+        };
+
+        const processedCounts = {
+          positive: data.counts?.positive || 0,
+          negative: data.counts?.negative || 0,
+          neutral: data.counts?.neutral || 0
+        };
+
+        console.log('원본 데이터:', data);
+        console.log('처리된 요약:', processedSummary);
+        console.log('처리된 헤드라인:', processedHeadline);
+        console.log('처리된 카운트:', processedCounts);
         
         return convertToSectorDetailData({
           sectorId: sectorId,
           date: date,
-          summary: data.summary || { positive: '요약 없음', negative: '요약 없음', neutral: '요약 없음' },
+          summary: processedSummary,
+          headline: processedHeadline,
           reactions: data.reactions || [],
-          counts: data.counts || { positive: 0, negative: 0, neutral: 0 },
+          counts: processedCounts,
           icon: data.icon, // 섹터별 아이콘 URL 가져오기
         });
       }
@@ -307,12 +382,33 @@ const SectorDetail: React.FC = () => {
           const foundSectorKey = sectorKeys[0];
           const sectorData = oldData[foundSectorKey];
           
+          // 기존 구조에서도 동일한 처리 적용
+          const processedSummary = {
+            positive: sectorData.summary?.positive?.summary || sectorData.summary?.positive || '요약 없음',
+            negative: sectorData.summary?.negative?.summary || sectorData.summary?.negative || '요약 없음',
+            neutral: sectorData.summary?.neutral?.summary || sectorData.summary?.neutral || '요약 없음'
+          };
+
+          // headline 데이터 처리
+          const processedHeadline = {
+            positive: sectorData.summary?.positive?.headline || sectorData.headline?.positive || '헤드라인 없음',
+            negative: sectorData.summary?.negative?.headline || sectorData.headline?.negative || '헤드라인 없음',
+            neutral: sectorData.summary?.neutral?.headline || sectorData.headline?.neutral || '헤드라인 없음'
+          };
+
+          const processedCounts = {
+            positive: sectorData.counts?.positive || 0,
+            negative: sectorData.counts?.negative || 0,
+            neutral: sectorData.counts?.neutral || 0
+          };
+
           return convertToSectorDetailData({
             sectorId: foundSectorKey,
             date: date,
-            summary: sectorData.summary,
+            summary: processedSummary,
+            headline: processedHeadline,
             reactions: sectorData.reactions,
-            counts: sectorData.counts,
+            counts: processedCounts,
             icon: sectorData.icon,
           });
         }
@@ -336,16 +432,20 @@ const SectorDetail: React.FC = () => {
         const data = docSnap.data();
         console.log(`sector_score에서 데이터 발견: ${sectorId}/${date}`, data);
         
+        // sector_score에서도 동일한 처리 적용
+        const processedCounts = {
+          positive: data.positive_count || data.positive || 0,
+          negative: data.negative_count || data.negative || 0,
+          neutral: data.neutral_count || data.neutral || 0
+        };
+
         return convertToSectorDetailData({
           sectorId: sectorId,
           date: date,
           summary: { positive: '요약 없음', negative: '요약 없음', neutral: '요약 없음' },
+          headline: { positive: '요약 없음', negative: '요약 없음', neutral: '요약 없음' }, // 헤드라인 정보 포함
           reactions: [], // No reactions in sector_score
-          counts: {
-            positive: data.positive_count || data.positive || 0,
-            negative: data.negative_count || data.negative || 0,
-            neutral: data.neutral_count || data.neutral || 0,
-          },
+          counts: processedCounts,
           icon: undefined, // sector_score에는 아이콘이 없음
         });
       }
@@ -366,16 +466,20 @@ const SectorDetail: React.FC = () => {
           const foundSectorKey = sectorKeys[0];
           const sectorScoreData = oldData[foundSectorKey];
           
+          // sector_score에서도 동일한 처리 적용
+          const processedCounts = {
+            positive: sectorScoreData.positive_count || sectorScoreData.positive || 0,
+            negative: sectorScoreData.negative_count || sectorScoreData.negative || 0,
+            neutral: sectorScoreData.neutral_count || sectorScoreData.neutral || 0
+          };
+
           return convertToSectorDetailData({
             sectorId: foundSectorKey,
             date: date,
             summary: { positive: '요약 없음', negative: '요약 없음', neutral: '요약 없음' },
+            headline: { positive: '요약 없음', negative: '요약 없음', neutral: '요약 없음' }, // 헤드라인 정보 포함
             reactions: [],
-            counts: {
-              positive: sectorScoreData.positive_count || 0,
-              negative: sectorScoreData.negative_count || 0,
-              neutral: sectorScoreData.neutral_count || 0,
-            },
+            counts: processedCounts,
             icon: undefined,
           });
         }
@@ -388,41 +492,7 @@ const SectorDetail: React.FC = () => {
     }
   };
 
-  // 다른 날짜에서 데이터 가져오기 시도
-  const tryGetFromOtherDates = async (sectorId: string, baseDate: string): Promise<SectorDetailData | null> => {
-    try {
-      console.log(`다른 날짜에서 데이터 검색 시작: ${baseDate} 기준`);
-      
-      // 최근 7일 내에서 데이터가 있는 날짜 찾기
-      for (let i = 1; i <= 7; i++) {
-        const searchDate = new Date(baseDate);
-        searchDate.setDate(searchDate.getDate() - i);
-        const searchDateString = searchDate.toISOString().split('T')[0];
-        
-        console.log(`${searchDateString} 데이터 확인 중...`);
-        
-        // sector_detail에서 시도
-        let sectorData = await tryGetFromSectorDetail(sectorId, searchDateString);
-        if (sectorData) {
-          console.log(`${searchDateString}에서 데이터 발견!`);
-          return sectorData;
-        }
-        
-        // sector_score에서 시도
-        sectorData = await tryGetFromSectorScore(sectorId, searchDateString);
-        if (sectorData) {
-          console.log(`${searchDateString}에서 sector_score 데이터 발견!`);
-          return sectorData;
-        }
-      }
-      
-      console.log('최근 7일 내에서 데이터를 찾을 수 없음');
-      return null;
-    } catch (error) {
-      console.error('다른 날짜에서 데이터 가져오기 오류:', error);
-      return null;
-    }
-  };
+
 
   // 데이터를 SectorDetailData 형식으로 변환
   const convertToSectorDetailData = (sectorData: any): SectorDetailData => {
@@ -433,6 +503,11 @@ const SectorDetail: React.FC = () => {
         positive: sectorData.summary?.positive || '요약 없음',
         negative: sectorData.summary?.negative || '요약 없음',
         neutral: sectorData.summary?.neutral || '요약 없음',
+      },
+      headline: {
+        positive: sectorData.headline?.positive || '요약 없음',
+        negative: sectorData.headline?.negative || '요약 없음',
+        neutral: sectorData.headline?.neutral || '요약 없음',
       },
       reactions: sectorData.reactions || [],
       counts: {
@@ -447,18 +522,24 @@ const SectorDetail: React.FC = () => {
   // 1일 데이터 로드 함수
   const loadDailySectorData = async (sectorId: string): Promise<SectorDetailData | null> => {
     try {
-      // selectedDate가 있으면 해당 날짜 사용, 없으면 오늘 날짜 사용
-      const baseDate = selectedDate || new Date().toISOString().split('T')[0];
-      console.log(`1일 데이터 로드 시작: ${baseDate}`);
-      
-      // 정확한 날짜의 데이터만 시도 (다른 날짜 검색하지 않음)
-      const sectorData = await getSectorDetailData(sectorId, baseDate);
-      
-      if (!sectorData) {
-        console.log(`${baseDate} 날짜에 데이터가 없습니다.`);
+      // selectedDate가 반드시 있어야 함 (1일 필터에서는 날짜 선택 필수)
+      if (!selectedDate) {
+        console.log('1일 필터에서는 날짜를 선택해야 합니다.');
+        return null;
       }
       
-      return sectorData;
+      console.log(`1일 데이터 로드 시작: ${selectedDate}`);
+      
+      // 선택된 날짜의 데이터만 시도 (다른 날짜 검색하지 않음)
+      const sectorData = await getSectorDetailData(sectorId, selectedDate);
+      
+      if (sectorData) {
+        console.log(`${selectedDate} 날짜에서 데이터 발견!`);
+        return sectorData;
+      } else {
+        console.log(`${selectedDate} 날짜에 데이터가 없습니다.`);
+        return null;
+      }
     } catch (error) {
       console.error('1일 데이터 로드 함수 오류:', error);
       return null;
@@ -619,10 +700,181 @@ const SectorDetail: React.FC = () => {
 
 
 
-  const openModal = (type: 'positive' | 'negative' | 'neutral') => {
-    setModalType(type);
-    setModalTitle(type === 'positive' ? '긍정적 반응' : type === 'negative' ? '부정적 반응' : '중립적 반응');
-    setModalOpen(true);
+  // 캘린더 관련 함수들
+  const handleDateClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    
+    // 캘린더 크기 (대략적인 값)
+    const calendarWidth = 320;
+    const calendarHeight = 400;
+    
+    // x 위치 계산 (화면 오른쪽 경계를 벗어나지 않도록)
+    let x = rect.left;
+    if (x + calendarWidth > windowWidth) {
+      x = windowWidth - calendarWidth - 20;
+    }
+    
+    // y 위치 계산 (화면 아래쪽 경계를 벗어나지 않도록)
+    let y = rect.bottom + 8;
+    if (y + calendarHeight > windowHeight) {
+      y = rect.top - calendarHeight - 8;
+    }
+    
+    setCalendarPosition({ x, y });
+    setIsCalendarOpen(true);
+  };
+
+  const handleCalendarClose = () => {
+    setIsCalendarOpen(false);
+  };
+
+  const handleDateSelect = (date: string) => {
+    setSelectedDate(date);
+    setIsCalendarOpen(false);
+  };
+
+  // 상세 반응 데이터 가져오기
+  const getDetailReactions = async (type: 'positive' | 'negative' | 'neutral', date: string): Promise<DetailReactionItem[]> => {
+    try {
+      console.log(`상세 반응 데이터 가져오기 시작: ${type}, ${date}`);
+      
+      // 데이터베이스 경로: /sector_detail/IT/detail_dates/2025-08-15
+      const docRef = doc(db, 'sector_detail', sectorId!, 'detail_dates', date);
+      const docSnap = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
+        console.log(`상세 데이터가 존재하지 않음: ${sectorId}/detail_dates/${date}`);
+        return [];
+      }
+      
+      const data = docSnap.data();
+      console.log('상세 데이터 원본:', data);
+      console.log('데이터 키들:', Object.keys(data));
+      
+      // 각 채널의 구조 확인
+      for (const [key, value] of Object.entries(data)) {
+        if (key !== 'icon' && key !== 'sector') {
+          console.log(`채널 "${key}" 구조:`, value);
+          if (value && typeof value === 'object') {
+            console.log(`채널 "${key}" 키들:`, Object.keys(value));
+            if ('posts' in value) {
+              console.log(`채널 "${key}" posts 구조:`, (value as any).posts);
+            }
+            if ('score' in value) {
+              console.log(`채널 "${key}" score:`, (value as any).score);
+            }
+          }
+        }
+      }
+      
+      // Firebase 콘솔에서 보이는 데이터 구조에 맞게 처리
+      // 구조: {채널명} 하위에 {posts}와 {score} 필드가 있고, 
+      // {posts} 하위에 인티저로 0부터 증가하는 숫자 필드 하위에 {contents}, {time}, {views}가 있음
+      let filteredData: DetailReactionItem[] = [];
+      
+      // 모든 채널을 순회하면서 score에 따른 필터링
+      for (const [channelName, channelData] of Object.entries(data)) {
+        if (channelName === 'icon' || channelName === 'sector') continue; // 메타데이터 제외
+        
+        if (channelData && typeof channelData === 'object' && 'posts' in channelData && 'score' in channelData) {
+          const channelScore = (channelData as any).score || 0;
+          const posts = (channelData as any).posts;
+          
+          // 채널의 score를 확인하여 필터링
+          let shouldIncludeChannel = false;
+          
+          switch (type) {
+            case 'positive':
+              shouldIncludeChannel = channelScore >= 70; // 70점 이상
+              break;
+            case 'negative':
+              shouldIncludeChannel = channelScore < 40;  // 40점 미만
+              break;
+            case 'neutral':
+              shouldIncludeChannel = channelScore >= 40 && channelScore < 70; // 40점 이상 70점 미만
+              break;
+            default:
+              shouldIncludeChannel = false;
+          }
+          
+          if (shouldIncludeChannel && posts && typeof posts === 'object') {
+            // posts 하위의 숫자 필드들을 순회 (0, 1, 2, ...)
+            for (const [postIndex, postData] of Object.entries(posts)) {
+              // postIndex가 숫자인지 확인 (0, 1, 2, ...)
+              if (!isNaN(Number(postIndex))) {
+                const post = postData as any;
+                
+                filteredData.push({
+                  id: `${channelName}_${postIndex}`,
+                  title: channelName,
+                  content: post.contents || post.content || '',
+                  source: channelName,
+                  time: post.time || new Date().toISOString(),
+                  views: post.views || 0,
+                  score: channelScore,
+                  sector: sectorId!,
+                  date: date
+                });
+              }
+            }
+          }
+        }
+      }
+      
+      console.log(`필터링된 ${type} 반응 데이터:`, filteredData);
+      console.log(`총 ${filteredData.length}개의 ${type} 반응을 찾았습니다.`);
+      
+      // 각 채널별로 몇 개의 포스트가 있는지 확인
+      const channelCounts: { [key: string]: number } = {};
+      filteredData.forEach(item => {
+        channelCounts[item.title] = (channelCounts[item.title] || 0) + 1;
+      });
+      console.log('채널별 포스트 수:', channelCounts);
+      
+      return filteredData;
+      
+    } catch (error) {
+      console.error(`상세 반응 데이터 가져오기 오류 (${type}):`, error);
+      return [];
+    }
+  };
+
+  const openModal = async (type: 'positive' | 'negative' | 'neutral') => {
+    try {
+      setModalType(type);
+      setModalTitle(type === 'positive' ? '긍정적 반응' : type === 'negative' ? '부정적 반응' : '중립적 반응');
+      
+      // 선택된 날짜 또는 오늘 날짜 사용
+      const targetDate = selectedDate || new Date().toISOString().split('T')[0];
+      console.log(`모달 열기: ${type}, 날짜: ${targetDate}`);
+      
+      // 상세 반응 데이터 가져오기
+      const detailReactions = await getDetailReactions(type, targetDate);
+      
+      // 기존 reactions 데이터와 상세 데이터를 결합
+      const combinedReactions = detailReactions.map(item => ({
+        id: item.id,
+        title: item.title,
+        content: item.content,
+        source: item.source,
+        time: item.time,
+        views: item.views || 0 // 데이터베이스에서 가져온 views 값 사용
+      }));
+      
+      // 모달 데이터 설정
+      setModalReactions(combinedReactions);
+      setModalOpen(true);
+      
+      // ReactionModal에 전달할 데이터 로깅
+      console.log(`모달에 전달할 ${type} 반응 데이터:`, combinedReactions);
+      console.log(`views 데이터 확인:`, combinedReactions.map(item => ({ id: item.id, views: item.views })));
+      
+    } catch (error) {
+      console.error(`모달 열기 오류 (${type}):`, error);
+      setModalOpen(true); // 오류가 발생해도 모달은 열기
+    }
   };
 
   if (loading) {
@@ -665,29 +917,7 @@ const SectorDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* Time Filter */}
-          <div className="time-filter-container">
-            <div className="time-filter-buttons">
-              <button 
-                className={`time-filter-btn ${timeFilter === '1일' ? 'active' : ''}`}
-                onClick={() => handleFilterChange('1일')}
-              >
-                1일
-              </button>
-              <button 
-                className={`time-filter-btn ${timeFilter === '1주' ? 'active' : ''}`}
-                onClick={() => handleFilterChange('1주')}
-              >
-                1주
-              </button>
-              <button 
-                className={`time-filter-btn ${timeFilter === '1개월' ? 'active' : ''}`}
-                onClick={() => handleFilterChange('1개월')}
-              >
-                1개월
-              </button>
-            </div>
-          </div>
+
 
           {/* Error Content */}
           <div className="error-container">
@@ -788,39 +1018,41 @@ const SectorDetail: React.FC = () => {
           </div>
             </div>
 
-        {/* Filter Buttons */}
-        <div className="filter-buttons">
-          <button 
-            className={`filter-btn ${timeFilter === '1일' ? 'active' : ''}`}
-            onClick={() => handleFilterChange('1일')}
-          >
-            1일
-          </button>
-          <button 
-            className={`filter-btn ${timeFilter === '1주' ? 'active' : ''}`}
-            onClick={() => handleFilterChange('1주')}
-          >
-            1주
-          </button>
-                  <button 
-            className={`filter-btn ${timeFilter === '1개월' ? 'active' : ''}`}
-            onClick={() => handleFilterChange('1개월')}
-                  >
-            1개월
-                  </button>
-        </div>
-
-        {/* Date Selector */}
-        <div className="date-selector">
-          <div className="date-arrow">‹</div>
-          <div className="date-display">
-            {selectedDate || new Date().toLocaleDateString('ko-KR', { 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
+        {/* Filter and Date Container */}
+        <div className="filter-date-container">
+          <div className="filter-buttons">
+            <button 
+              className={`filter-btn ${timeFilter === '1일' ? 'active' : ''}`}
+              onClick={() => handleFilterChange('1일')}
+            >
+              1일
+            </button>
+            <button 
+              className={`filter-btn ${timeFilter === '1주' ? 'active' : ''}`}
+              onClick={() => handleFilterChange('1주')}
+            >
+              1주
+            </button>
+            <button 
+              className={`filter-btn ${timeFilter === '1개월' ? 'active' : ''}`}
+              onClick={() => handleFilterChange('1개월')}
+            >
+              1개월
+            </button>
           </div>
-          <div className="date-arrow">›</div>
+          
+          {/* Date Selector */}
+          <div className="date-selector">
+            <div className="date-arrow">‹</div>
+            <div className="date-display" onClick={handleDateClick} style={{ cursor: 'pointer' }}>
+              {selectedDate || new Date().toLocaleDateString('ko-KR', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </div>
+            <div className="date-arrow">›</div>
+          </div>
         </div>
 
         {/* Content Cards */}
@@ -834,58 +1066,58 @@ const SectorDetail: React.FC = () => {
             </div>
             <div className="chart-container">
               <div className="donut-chart">
-                <svg width="200" height="200" viewBox="0 0 200 200">
+                <svg width="280" height="280" viewBox="0 0 280 280">
                   {/* 배경 원 (회색) */}
                   <circle
-                    cx="100"
-                    cy="100"
-                    r="60"
+                    cx="140"
+                    cy="140"
+                    r="84"
                     fill="none"
                     stroke="#F0F0F0"
-                    strokeWidth="20"
+                    strokeWidth="18"
                   />
                   
                   {/* 긍정적 반응 (빨간색) */}
                   <circle
-                    cx="100"
-                    cy="100"
-                    r="60"
+                    cx="140"
+                    cy="140"
+                    r="84"
                     fill="none"
                     stroke="#EB2F45"
-                    strokeWidth="20"
-                    strokeDasharray={`${(positivePercentage / 100) * 377} 377`}
-                    transform="rotate(-90 100 100)"
+                    strokeWidth="18"
+                    strokeDasharray={`${(positivePercentage / 100) * 528} 528`}
+                    transform="rotate(-90 140 140)"
                     strokeLinecap="round"
                   />
                   
                   {/* 부정적 반응 (파란색) */}
                   <circle
-                    cx="100"
-                    cy="100"
-                    r="60"
+                    cx="140"
+                    cy="140"
+                    r="84"
                     fill="none"
                     stroke="#107AEB"
-                    strokeWidth="20"
-                    strokeDasharray={`${(negativePercentage / 100) * 377} 377`}
-                    transform={`rotate(${-90 + (positivePercentage * 3.6)} 100 100)`}
+                    strokeWidth="18"
+                    strokeDasharray={`${(negativePercentage / 100) * 528} 528`}
+                    transform={`rotate(${-90 + (positivePercentage * 3.6)} 140 140)`}
                     strokeLinecap="round"
                   />
                   
                   {/* 중립적 반응 (회색) */}
                   <circle
-                    cx="100"
-                    cy="100"
-                    r="60"
+                    cx="140"
+                    cy="140"
+                    r="84"
                     fill="none"
                     stroke="#969696"
-                    strokeWidth="20"
-                    strokeDasharray={`${(neutralPercentage / 100) * 377} 377`}
-                    transform={`rotate(${-90 + (positivePercentage * 3.6) + (negativePercentage * 3.6)} 100 100)`}
+                    strokeWidth="18"
+                    strokeDasharray={`${(neutralPercentage / 100) * 528} 528`}
+                    transform={`rotate(${-90 + (positivePercentage * 3.6) + (negativePercentage * 3.6)} 140 140)`}
                     strokeLinecap="round"
                   />
                   
                   {/* 중앙 텍스트 */}
-                  <text x="100" y="100" textAnchor="middle" dy=".3em" className="donut-chart-center">
+                  <text x="140" y="140" textAnchor="middle" dy=".3em" className="donut-chart-center">
                     {totalReactions}
                   </text>
                 </svg>
@@ -919,47 +1151,65 @@ const SectorDetail: React.FC = () => {
               </div>
 
             {/* Positive Reactions */}
-            <div className="reaction-section positive">
+            <div className="reaction-section">
               <div className="reaction-header">
-                <h3>긍정적 반응</h3>
-                <button className="view-reactions-btn" onClick={() => openModal('positive')}>
-                  <span className="btn-icon">Q</span>
-                  주요 반응 보기
+                <h3 className="positive">긍정적 반응</h3>
+                <button className={`view-reactions-btn ${data.counts.positive > 0 ? 'active' : 'inactive'}`} onClick={() => openModal('positive')}>
+                  <span className="btn-icon">
+                    {data.counts.positive > 0 ? (
+                      <img src="/img/Icon_search=active.png" alt="긍정적 반응 있음" />
+                    ) : (
+                      <img src="/img/Icon_search=inactive.png" alt="긍정적 반응 없음" />
+                    )}
+                  </span>
+                  <span className="btn-text">주요 반응 보기</span>
                 </button>
               </div>
               <div className="reaction-content">
-                <h4>{typeof data.summary.positive === 'string' ? data.summary.positive : '긍정적 반응 없음'}</h4>
-                <p>{typeof data.summary.positive === 'string' ? '긍정적 반응에 대한 요약입니다.' : '긍정적 반응에 대한 요약이 없습니다.'}</p>
+                <h4>{data.headline.positive !== '헤드라인 없음' ? data.headline.positive : '긍정적 반응 없음'}</h4>
+                <p>{data.summary.positive !== '요약 없음' ? data.summary.positive : '긍정적 반응에 대한 요약이 없습니다.'}</p>
               </div>
             </div>
 
             {/* Negative Reactions */}
-            <div className="reaction-section negative">
+            <div className="reaction-section">
               <div className="reaction-header">
-                <h3>부정적 반응</h3>
-                <button className="view-reactions-btn" onClick={() => openModal('negative')}>
-                  <span className="btn-icon">Q</span>
-                  주요 반응 보기
+                <h3 className="negative">부정적 반응</h3>
+                <button className={`view-reactions-btn ${data.counts.negative > 0 ? 'active' : 'inactive'}`} onClick={() => openModal('negative')}>
+                  <span className="btn-icon">
+                    {data.counts.negative > 0 ? (
+                      <img src="/img/Icon_search=active.png" alt="부정적 반응 있음" />
+                    ) : (
+                      <img src="/img/Icon_search=inactive.png" alt="부정적 반응 없음" />
+                    )}
+                  </span>
+                  <span className="btn-text">주요 반응 보기</span>
                 </button>
               </div>
               <div className="reaction-content">
-                <h4>{typeof data.summary.negative === 'string' ? data.summary.negative : '부정적 반응 없음'}</h4>
-                <p>{typeof data.summary.negative === 'string' ? '부정적 반응에 대한 요약입니다.' : '부정적 반응에 대한 요약이 없습니다.'}</p>
+                <h4>{data.headline.negative !== '헤드라인 없음' ? data.headline.negative : '부정적 반응 없음'}</h4>
+                <p>{data.summary.negative !== '요약 없음' ? data.summary.negative : '부정적 반응에 대한 요약이 없습니다.'}</p>
               </div>
             </div>
 
             {/* Neutral Reactions */}
-            <div className="reaction-section neutral">
+            <div className="reaction-section">
               <div className="reaction-header">
-                <h3>중립적 반응</h3>
-                <button className="view-reactions-btn" onClick={() => openModal('neutral')}>
-                  <span className="btn-icon">Q</span>
-                  주요 반응 보기
+                <h3 className="neutral">중립적 반응</h3>
+                <button className={`view-reactions-btn ${data.counts.neutral > 0 ? 'active' : 'inactive'}`} onClick={() => openModal('neutral')}>
+                  <span className="btn-icon">
+                    {data.counts.neutral > 0 ? (
+                      <img src="/img/Icon_search=active.png" alt="중립적 반응 있음" />
+                    ) : (
+                      <img src="/img/Icon_search=inactive.png" alt="중립적 반응 없음" />
+                    )}
+                  </span>
+                  <span className="btn-text">주요 반응 보기</span>
                 </button>
               </div>
               <div className="reaction-content">
-                <h4>{typeof data.summary.neutral === 'string' ? data.summary.neutral : '중립적 반응 없음'}</h4>
-                <p>{typeof data.summary.neutral === 'string' ? '중립적 반응에 대한 요약입니다.' : '중립적 반응에 대한 요약이 없습니다.'}</p>
+                <h4>{data.headline.neutral !== '헤드라인 없음' ? data.headline.neutral : '중립적 반응 없음'}</h4>
+                <p>{data.summary.neutral !== '요약 없음' ? data.summary.neutral : '중립적 반응에 대한 요약이 없습니다.'}</p>
               </div>
             </div>
               </div>
@@ -1017,10 +1267,23 @@ const SectorDetail: React.FC = () => {
             isOpen={modalOpen}
           onClose={() => setModalOpen(false)}
             title={modalTitle}
-            reactions={data.reactions.filter((r: ReactionItem) => r.title.includes(modalType))}
+            reactions={modalReactions}
             type={modalType}
+            sectorName={data.sectorId}
+            headline={modalType === 'positive' ? data.headline.positive : 
+                     modalType === 'negative' ? data.headline.negative : 
+                     data.headline.neutral}
           />
         )}
+
+      {/* Calendar Component */}
+      <Calendar
+        isOpen={isCalendarOpen}
+        onClose={handleCalendarClose}
+        onDateSelect={handleDateSelect}
+        selectedDate={selectedDate || new Date().toISOString().split('T')[0]}
+        position={calendarPosition}
+      />
     </div>
   );
 };

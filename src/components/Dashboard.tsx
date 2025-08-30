@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import { getRealStockData, getLatestDate } from '../services/realDataService';
 import Header from './Header';
 import Footer from './Footer';
+import Calendar from './Calendar';
 import './Dashboard.css';
 
 // 간단한 타입 정의
@@ -34,9 +35,15 @@ const Dashboard: React.FC = () => {
   const [lastUpdated, setLastUpdated] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [dataDate, setDataDate] = useState<string>('');
-  const [targetDate, setTargetDate] = useState<string>('2025-08-18');
+  const [targetDate, setTargetDate] = useState<string>('');
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [calendarPosition, setCalendarPosition] = useState({ x: 0, y: 0 });
 
   const navigate = useNavigate();
+  
+  // 디버깅을 위한 ref 추가
+  const stocksRef = useRef<StockItem[]>([]);
+  const targetDateRef = useRef<string>('');
 
   // 초기 기준일자 설정 - 한 번만 실행
   useEffect(() => {
@@ -73,6 +80,65 @@ const Dashboard: React.FC = () => {
   const handleTimeFilterChange = (filter: TimeFilter) => {
     console.log('시간 필터 변경:', filter, '현재 로딩 상태:', loading);
     setTimeFilter(filter);
+    
+    // timeFilter 변경 시 현재 targetDate로 데이터 다시 로딩
+    if (targetDate) {
+      console.log('🔄 timeFilter 변경으로 인한 데이터 재로딩 시작:', filter);
+      loadDataForCurrentDate();
+    }
+  };
+  
+  // 현재 날짜의 데이터를 로딩하는 함수
+  const loadDataForCurrentDate = async () => {
+    if (!targetDate) return;
+    
+
+    
+    console.log('=== timeFilter 변경으로 인한 데이터 재로딩 ===');
+    console.log('🎯 로딩할 날짜:', targetDate);
+    console.log('🎯 선택된 필터:', timeFilter);
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      let realStockData: StockItem[] = [];
+      
+      if (timeFilter === '1주') {
+        console.log('1주 필터 선택: 7일간 데이터 합산 중...');
+        const weekData = await loadWeekData(targetDate);
+        realStockData = weekData;
+      } else if (timeFilter === '1개월') {
+        console.log('1개월 필터 선택: 30일간 데이터 합산 중...');
+        const monthData = await loadMonthData(targetDate);
+        realStockData = monthData;
+      } else {
+        console.log('1일 필터 선택: 단일 날짜 데이터 로딩 중...');
+        realStockData = await getRealStockData(targetDate);
+      }
+      
+      console.log('📊 timeFilter 변경 후 로딩된 데이터:', {
+        length: realStockData.length,
+        isEmpty: realStockData.length === 0,
+        targetDate: targetDate,
+        filter: timeFilter
+      });
+      
+      setStocks(realStockData);
+      setLastUpdated(new Date().toLocaleString('ko-KR'));
+      setDataDate(formatDataDate(targetDate));
+      
+      if (realStockData.length === 0) {
+        setError(`${targetDate} 날짜에 데이터가 없습니다. 다른 날짜를 선택해주세요.`);
+      } else {
+        setError('');
+      }
+    } catch (err) {
+      console.error('timeFilter 변경 시 데이터 로딩 오류:', err);
+      setError('데이터를 불러오는 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 이전 날짜로 이동
@@ -106,8 +172,24 @@ const Dashboard: React.FC = () => {
     // targetDate가 설정되지 않았으면 실행하지 않음
     if (!targetDate) return;
     
+    console.log('🔄 useEffect 실행 - targetDate 변경됨:', targetDate);
+    console.log('🧹 stocks 상태 즉시 초기화 (useEffect 시작 시)');
+    console.log('📊 이전 stocks 상태:', stocks.length, '개');
+    console.log('📊 이전 stocksRef 상태:', stocksRef.current.length, '개');
+    
+    // 즉시 데이터 로딩 시작
+    console.log('🚀 즉시 데이터 로딩 시작:', targetDate);
+    
+    // stocks 상태 초기화
+    setStocks([]);
+    stocksRef.current = [];
+    
+    // targetDate ref 업데이트
+    targetDateRef.current = targetDate;
+    
+    // async 함수로 데이터 로딩
     const loadData = async () => {
-      console.log('데이터 로딩 시작:', targetDate);
+      // 로딩 상태 설정
       setLoading(true);
       setError('');
       
@@ -117,34 +199,51 @@ const Dashboard: React.FC = () => {
         let realStockData: StockItem[] = [];
         
         if (timeFilter === '1주') {
-          // 1주 필터: 기준일자로부터 7일전까지의 데이터 합산
           console.log('1주 필터 선택: 7일간 데이터 합산 중...');
           const weekData = await loadWeekData(targetDate);
           realStockData = weekData;
         } else if (timeFilter === '1개월') {
-          // 1개월 필터: 기준일자로부터 30일전까지의 데이터 합산
           console.log('1개월 필터 선택: 30일간 데이터 합산 중...');
           const monthData = await loadMonthData(targetDate);
           realStockData = monthData;
         } else {
-          // 1일 필터: 기존 로직 유지
           console.log('1일 필터 선택: 단일 날짜 데이터 로딩 중...');
+          console.log('🔍 getRealStockData 호출 전:', targetDate);
           realStockData = await getRealStockData(targetDate);
+          console.log('🔍 getRealStockData 호출 후 결과:', {
+            length: realStockData.length,
+            data: realStockData.slice(0, 3)
+          });
         }
         
-        // 실제 데이터 사용 (0점이어도 표시)
+        console.log('로딩된 데이터 상세:', {
+          targetDate,
+          dataLength: realStockData.length,
+          dataSample: realStockData.slice(0, 2),
+          allSectors: realStockData.map(s => s.sector)
+        });
+        
+        console.log('📊 setStocks 호출 전 realStockData:', {
+          length: realStockData.length,
+          isEmpty: realStockData.length === 0,
+          sample: realStockData.slice(0, 2)
+        });
+        
+        // stocks 상태 업데이트 및 ref 동기화
         setStocks(realStockData);
+        stocksRef.current = realStockData;
+        
         setLastUpdated(new Date().toLocaleString('ko-KR'));
-        // sector_score 문서 기준일자 표기
         setDataDate(formatDataDate(targetDate));
-        console.log('섹터 데이터 로딩 완료:', realStockData.length, '개 섹터');
+        console.log('✅ 섹터 데이터 로딩 완료:', realStockData.length, '개 섹터');
+        console.log('📊 stocksRef.current 업데이트됨:', stocksRef.current.length, '개');
         
         if (realStockData.length === 0) {
           console.log(`${targetDate} 날짜에 섹터 데이터가 없습니다.`);
           setError(`${targetDate} 날짜에 데이터가 없습니다. 다른 날짜를 선택해주세요.`);
         } else {
           console.log(`${targetDate} 날짜에 ${realStockData.length}개 섹터 데이터 로딩 성공`);
-          setError(''); // 에러 메시지 초기화
+          setError('');
         }
       } catch (err) {
         console.error('데이터 로딩 오류:', err);
@@ -158,9 +257,13 @@ const Dashboard: React.FC = () => {
         setLoading(false);
       }
     };
-
+    
+    // 즉시 데이터 로딩 실행
     loadData();
-  }, [timeFilter, targetDate]); // targetDate가 변경될 때만 실행
+  }, [targetDate]); // targetDate만 의존성으로 설정 (timeFilter 제거)
+
+  // timeFilter 변경 시에는 데이터를 다시 로딩하지 않음
+  // 모든 데이터 로딩은 targetDate 변경 시에만 처리
 
   // 1주 데이터 로드 함수
   const loadWeekData = async (baseDate: string): Promise<StockItem[]> => {
@@ -301,6 +404,41 @@ const Dashboard: React.FC = () => {
           : stock
       )
     );
+  };
+
+  // 캘린더 관련 함수들
+  const handleDateClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    
+    // 캘린더 크기 (대략적인 값)
+    const calendarWidth = 320;
+    const calendarHeight = 400;
+    
+    // x 위치 계산 (화면 오른쪽 경계를 벗어나지 않도록)
+    let x = rect.left;
+    if (x + calendarWidth > windowWidth) {
+      x = windowWidth - calendarWidth - 20;
+    }
+    
+    // y 위치 계산 (화면 아래쪽 경계를 벗어나지 않도록)
+    let y = rect.bottom + 8;
+    if (y + calendarHeight > windowHeight) {
+      y = rect.top - calendarHeight - 8;
+    }
+    
+    setCalendarPosition({ x, y });
+    setIsCalendarOpen(true);
+  };
+
+  const handleCalendarClose = () => {
+    setIsCalendarOpen(false);
+  };
+
+  const handleDateSelect = (date: string) => {
+    setTargetDate(date);
+    setIsCalendarOpen(false);
   };
 
 
@@ -525,6 +663,51 @@ const Dashboard: React.FC = () => {
           <div className="subtitle">{new Date(targetDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} 기준</div>
         </div>
         
+        {/* 날짜 변경 컨트롤 - 로딩 중에도 사용 가능 */}
+        <div className="date-filter-container">
+          <div className="date-filter-buttons">
+            <button 
+              className={`date-filter-btn ${timeFilter === '1일' ? 'active' : ''}`}
+              onClick={() => handleTimeFilterChange('1일')}
+            >
+              <span className="date-filter-text">1일</span>
+            </button>
+            <button 
+              className={`date-filter-btn ${timeFilter === '1주' ? 'active' : ''}`}
+              onClick={() => handleTimeFilterChange('1주')}
+            >
+              <span className="date-filter-text">1주</span>
+            </button>
+            <button 
+              className={`date-filter-btn ${timeFilter === '1개월' ? 'active' : ''}`}
+              onClick={() => handleTimeFilterChange('1개월')}
+            >
+              <span className="date-filter-text">1개월</span>
+            </button>
+          </div>
+          
+          {/* 날짜 선택 컨트롤 */}
+          <div className="date-selector">
+            <button 
+              className="date-arrow" 
+              onClick={handlePreviousDay}
+              disabled={loading}
+            >
+              ‹
+            </button>
+            <div className="date-display" onClick={handleDateClick} style={{ cursor: 'pointer' }}>
+              {formatDataDate(targetDate)}
+            </div>
+            <button 
+              className="date-arrow" 
+              onClick={handleNextDay}
+              disabled={loading}
+            >
+              ›
+            </button>
+          </div>
+        </div>
+        
         {/* 로딩 상태 */}
         <div className="loading-container">
           <div className="loading-spinner"></div>
@@ -559,6 +742,15 @@ const Dashboard: React.FC = () => {
         </div>
         
         <Footer />
+        
+        {/* 캘린더 컴포넌트 */}
+        <Calendar
+          isOpen={isCalendarOpen}
+          onClose={handleCalendarClose}
+          onDateSelect={handleDateSelect}
+          selectedDate={targetDate}
+          position={calendarPosition}
+        />
       </div>
     );
   }
@@ -607,7 +799,7 @@ const Dashboard: React.FC = () => {
             >
               ‹
             </button>
-            <div className="date-display">
+            <div className="date-display" onClick={handleDateClick} style={{ cursor: 'pointer' }}>
               {formatDataDate(targetDate)}
             </div>
             <button 
@@ -633,6 +825,15 @@ const Dashboard: React.FC = () => {
         </div>
 
         <Footer />
+        
+        {/* 캘린더 컴포넌트 */}
+        <Calendar
+          isOpen={isCalendarOpen}
+          onClose={handleCalendarClose}
+          onDateSelect={handleDateSelect}
+          selectedDate={targetDate}
+          position={calendarPosition}
+        />
       </div>
     );
   }
@@ -679,9 +880,9 @@ const Dashboard: React.FC = () => {
           >
             ‹
           </button>
-          <div className="date-display">
-            {formatDataDate(targetDate)}
-          </div>
+                      <div className="date-display" onClick={handleDateClick} style={{ cursor: 'pointer' }}>
+              {formatDataDate(targetDate)}
+            </div>
           <button 
             className="date-arrow" 
             onClick={handleNextDay}
@@ -812,6 +1013,15 @@ const Dashboard: React.FC = () => {
       </div>
       
       <Footer />
+      
+      {/* 캘린더 컴포넌트 */}
+      <Calendar
+        isOpen={isCalendarOpen}
+        onClose={handleCalendarClose}
+        onDateSelect={handleDateSelect}
+        selectedDate={targetDate}
+        position={calendarPosition}
+      />
     </div>
   );
 };

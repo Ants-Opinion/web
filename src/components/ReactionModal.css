@@ -38,7 +38,7 @@
 }
 
 .modal-main-title {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 600;
   color: #333;
   margin: 0 0 8px 0;
@@ -53,10 +53,13 @@
 }
 
 .modal-headline {
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.4;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.5;
   margin: 0;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
 }
 
 .modal-close-btn {
@@ -87,16 +90,16 @@
   padding: 0;
 }
 
-.reaction-item {
+.channel-section {
   padding: 24px 32px;
   border-bottom: 1px solid #f1f3f4;
 }
 
-.reaction-item:last-child {
+.channel-section:last-child {
   border-bottom: none;
 }
 
-.reaction-header {
+.channel-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -110,8 +113,40 @@
   gap: 4px;
 }
 
-.reaction-source {
+.channel-name {
+  font-size: 16px;
+  color: #333;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.posts-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.post-item {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.post-meta {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.post-date {
   font-size: 14px;
+  color: #999;
+}
+
+.post-views {
+  font-size: 12px;
   color: #666;
   font-weight: 500;
 }
@@ -141,6 +176,13 @@
   background: #f8f9fa;
   border-radius: 8px;
   border-left: 4px solid #007bff;
+}
+
+.post-content {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #444;
+  white-space: pre-line;
 }
 
 .reaction-text {
@@ -180,14 +222,18 @@
     font-size: 18px;
   }
   
-  .reaction-item {
+  .channel-section {
     padding: 20px 24px;
   }
   
-  .reaction-header {
+  .channel-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
+  }
+  
+  .post-item {
+    padding: 12px;
   }
   
   .no-reactions {

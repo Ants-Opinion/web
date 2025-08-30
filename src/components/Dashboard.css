@@ -186,6 +186,16 @@
   white-space: nowrap;
   min-width: 120px;
   text-align: center;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.date-display:hover {
+  background: #F8F9FA;
+  color: #107AEB;
 }
 
 /* ================================== */

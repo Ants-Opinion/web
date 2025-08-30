@@ -8,13 +8,14 @@
   background: white;
   border-bottom: 0.50px #AFAFAF solid;
   z-index: 1000; /* 다른 요소들이 헤더 위에 겹치지 않도록 높은 z-index 설정 */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  box-sizing: border-box;
 }
 
 .nav-menu {
-  position: absolute;
-  top: 17px;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   gap: 29px;
   z-index: 1001; /* 헤더 배경보다 높은 z-index */
@@ -43,9 +44,6 @@
 }
 
 .logout-btn {
-  position: absolute;
-  top: 17px;
-  right: 30px;
   height: 39px;
   padding: 9px 13px;
   background: #EB2F45;
@@ -75,12 +73,10 @@
 }
 
 .mypage-btn {
-  position: absolute;
-  top: 17px;
-  right: 120px;
   height: 39px;
   padding: 9px 13px;
   background: #F1F1F1;
+  margin-right: 20px;
   border-radius: 10px;
   border: none;
   color: #0B1215;
@@ -101,9 +97,6 @@
 }
 
 .logo {
-  position: absolute;
-  top: 17px;
-  left: 30px;
   width: 165px;
   height: 50px;
   cursor: pointer;

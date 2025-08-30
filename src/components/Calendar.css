@@ -1,0 +1,162 @@
+/* Calendar 컴포넌트 스타일 */
+.calendar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+}
+
+.calendar-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  border: 1px solid #E9ECEF;
+  padding: 20px;
+  min-width: 320px;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+}
+
+/* 캘린더 헤더 */
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.calendar-nav-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #676767;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+.calendar-nav-btn:hover {
+  background: #F8F9FA;
+  color: #0B1215;
+}
+
+.calendar-month-year {
+  font-size: 18px;
+  font-weight: 600;
+  color: #0B1215;
+  text-align: center;
+  flex: 1;
+}
+
+/* 요일 헤더 */
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: #676767;
+  padding: 8px 4px;
+}
+
+/* 날짜 그리드 */
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-day {
+  background: none;
+  border: none;
+  padding: 8px 4px;
+  font-size: 14px;
+  color: #0B1215;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+}
+
+.calendar-day:hover:not(:disabled) {
+  background: #F8F9FA;
+  color: #0B1215;
+}
+
+.calendar-day.selected {
+  background: #107AEB;
+  color: white;
+  font-weight: 600;
+}
+
+.calendar-day.selected:hover {
+  background: #0D6BC7;
+}
+
+.calendar-day.today {
+  background: #E3F2FD;
+  color: #107AEB;
+  font-weight: 600;
+  border: 1px solid #107AEB;
+}
+
+.calendar-day.today:hover {
+  background: #BBDEFB;
+}
+
+.calendar-day.other-month {
+  color: #CCCCCC;
+  cursor: default;
+}
+
+.calendar-day.other-month:hover {
+  background: none;
+}
+
+.calendar-day:disabled {
+  cursor: default;
+  color: #CCCCCC;
+}
+
+.calendar-day:disabled:hover {
+  background: none;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 480px) {
+  .calendar-container {
+    min-width: 280px;
+    padding: 16px;
+  }
+  
+  .calendar-day {
+    min-height: 32px;
+    font-size: 13px;
+  }
+  
+  .calendar-month-year {
+    font-size: 16px;
+  }
+  
+  .calendar-nav-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+  }
+}

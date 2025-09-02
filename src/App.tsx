@@ -6,6 +6,7 @@ import Login from './components/Login'
 import Dashboard from './components/Dashboard'
 import SectorDetail from './components/SectorDetail'
 import MyPage from './components/MyPage'
+import Favorites from './components/Favorites'
 import './App.css'
 
 function App() {
@@ -70,6 +71,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/favorites" element={<Favorites />} />
         <Route path="/sector/:sectorId" element={<SectorDetail />} />
         <Route path="/mypage" element={<MyPage />} />
       </Routes>

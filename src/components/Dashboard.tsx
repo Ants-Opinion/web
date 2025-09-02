@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebase';
 import { getRealStockData, getLatestDate } from '../services/realDataService';
+import { addToFavorites, removeFromFavorites, isSectorFavorite } from '../services/favoriteService';
 import Header from './Header';
 import Footer from './Footer';
 import Calendar from './Calendar';
@@ -38,38 +39,184 @@ const Dashboard: React.FC = () => {
   const [targetDate, setTargetDate] = useState<string>('');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarPosition, setCalendarPosition] = useState({ x: 0, y: 0 });
+  const [isProcessingPostData, setIsProcessingPostData] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
   
   // 디버깅을 위한 ref 추가
   const stocksRef = useRef<StockItem[]>([]);
   const targetDateRef = useRef<string>('');
 
-  // 초기 기준일자 설정 - 한 번만 실행
+  // POST 데이터에서 초기값 읽어오기
+  useEffect(() => {
+    // location.state에서 POST 데이터 읽기
+    const postData = location.state as { filter?: string; date?: string } | null;
+    
+    if (postData) {
+      const { filter, date } = postData;
+      
+      console.log('=== 대시보드 POST 데이터 읽기 ===');
+      console.log('POST 데이터:', postData);
+      console.log('filter:', filter);
+      console.log('date:', date);
+      console.log('현재 timeFilter:', timeFilter);
+      console.log('현재 targetDate:', targetDate);
+      console.log('==============================');
+      
+      // POST 데이터가 있을 때는 즉시 오류 상태를 초기화하고 로딩 상태로 설정
+      setError('');
+      setLoading(true);
+      setStocks([]);
+      setIsProcessingPostData(true); // POST 데이터 처리 중 표시
+      
+      let shouldReloadData = false;
+      
+      if (filter && ['1일', '1주', '1개월'].includes(filter)) {
+        if (timeFilter !== filter) {
+          console.log('시간 필터 변경:', timeFilter, '->', filter);
+          setTimeFilter(filter as TimeFilter);
+          shouldReloadData = true;
+        } else {
+          console.log('시간 필터 동일, 변경 없음:', filter);
+        }
+      }
+      
+      if (date) {
+        if (targetDate !== date) {
+          console.log('날짜 변경:', targetDate, '->', date);
+          setTargetDate(date);
+          shouldReloadData = true;
+        } else {
+          console.log('날짜 동일, 변경 없음:', date);
+        }
+      }
+      
+      // POST 데이터가 변경되었고, 날짜가 설정되어 있으면 데이터 로딩
+      if (shouldReloadData && date) {
+        console.log('POST 데이터 변경으로 인한 데이터 재로딩 필요');
+        // POST 데이터로 직접 데이터 로딩
+        loadDataForPostData(filter as TimeFilter, date);
+      } else {
+        console.log('데이터 재로딩 불필요');
+        // 로딩 상태 해제
+        setLoading(false);
+      }
+      
+      // POST 데이터를 사용한 후 state에서 제거 (일회성 사용)
+      navigate(location.pathname, { replace: true, state: null });
+      console.log('POST 데이터 사용 완료, state에서 제거됨');
+      
+    } else {
+      console.log('POST 데이터가 없음');
+    }
+  }, [location.state, timeFilter, targetDate, navigate, location.pathname]);
+
+  // 즐겨찾기 상태 초기화 함수
+  const initializeFavoriteStates = async (stockData: StockItem[]) => {
+    try {
+      const stocksWithFavorites = await Promise.all(
+        stockData.map(async (stock) => {
+          const isFavorite = await isSectorFavorite(stock.id);
+          return { ...stock, isFavorite };
+        })
+      );
+      setStocks(stocksWithFavorites);
+      stocksRef.current = stocksWithFavorites;
+    } catch (error) {
+      console.error('즐겨찾기 상태 초기화 오류:', error);
+      // 오류가 발생해도 기본 데이터는 표시
+      setStocks(stockData);
+      stocksRef.current = stockData;
+    }
+  };
+
+  // POST 데이터를 위한 별도 데이터 로딩 함수
+  const loadDataForPostData = async (filter: TimeFilter, date: string) => {
+    try {
+      console.log('POST 데이터로 직접 데이터 로딩 시작:', { filter, date });
+      
+      let realStockData: StockItem[] = [];
+      
+      if (filter === '1주') {
+        console.log('1주 필터 선택: 7일간 데이터 합산 중...');
+        const weekData = await loadWeekData(date);
+        realStockData = weekData;
+      } else if (filter === '1개월') {
+        console.log('1개월 필터 선택: 30일간 데이터 합산 중...');
+        const monthData = await loadMonthData(date);
+        realStockData = monthData;
+      } else {
+        console.log('1일 필터 선택: 단일 날짜 데이터 로딩 중...');
+        realStockData = await getRealStockData(date);
+      }
+      
+      console.log('POST 데이터로 로딩된 데이터:', {
+        date,
+        filter,
+        dataLength: realStockData.length,
+        dataSample: realStockData.slice(0, 2)
+      });
+      
+      // 즐겨찾기 상태 초기화 후 stocks 상태 업데이트
+      await initializeFavoriteStates(realStockData);
+      
+      setLastUpdated(new Date().toLocaleString('ko-KR'));
+      setDataDate(formatDataDate(date));
+      
+      if (realStockData.length === 0) {
+        console.log(`${date} 날짜에 섹터 데이터가 없습니다.`);
+        setError(`${date} 날짜에 데이터가 없습니다. 다른 날짜를 선택해주세요.`);
+      } else {
+        console.log(`${date} 날짜에 ${realStockData.length}개 섹터 데이터 로딩 성공`);
+        setError('');
+      }
+      
+    } catch (err) {
+      console.error('POST 데이터 로딩 오류:', err);
+      setError('데이터를 불러오는 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+      setIsProcessingPostData(false); // POST 데이터 처리 완료
+    }
+  };
+
+  // 초기 기준일자 설정 - URL에서 날짜가 없을 때만 실행
   useEffect(() => {
     let isMounted = true;
     
     const initializeDate = async () => {
       try {
+        // URL에서 날짜가 이미 설정되어 있으면 그 값을 사용
+        if (targetDate) {
+          console.log('이미 설정된 날짜 사용:', targetDate);
+          return;
+        }
+        
+        // URL에서 날짜가 없을 때만 최신 날짜 가져오기
         const latestDate = await getLatestDate();
-        if (isMounted) {
+        if (isMounted && !targetDate) {
           setTargetDate(latestDate);
-          console.log('초기 기준일자 설정:', latestDate);
+          console.log('최신 날짜로 초기화:', latestDate);
         }
       } catch (error) {
         console.error('초기 기준일자 설정 오류:', error);
-        // 오류 발생 시 기본값으로 어제 날짜 설정
-        if (isMounted) {
+        // 오류 발생 시 기본값으로 어제 날짜 설정 (URL에서 날짜가 없을 때만)
+        if (isMounted && !targetDate) {
           const today = new Date();
           const yesterday = new Date(today);
           yesterday.setDate(today.getDate() - 1);
           const yesterdayString = yesterday.toISOString().split('T')[0];
           setTargetDate(yesterdayString);
+          console.log('오류로 인해 어제 날짜로 설정:', yesterdayString);
         }
       }
     };
 
-    initializeDate();
+    // targetDate가 설정되지 않았을 때만 실행
+    if (!targetDate) {
+      initializeDate();
+    }
     
     return () => {
       isMounted = false;
@@ -124,9 +271,9 @@ const Dashboard: React.FC = () => {
         filter: timeFilter
       });
       
-      setStocks(realStockData);
-      setLastUpdated(new Date().toLocaleString('ko-KR'));
-      setDataDate(formatDataDate(targetDate));
+              await initializeFavoriteStates(realStockData);
+        setLastUpdated(new Date().toLocaleString('ko-KR'));
+        setDataDate(formatDataDate(targetDate));
       
       if (realStockData.length === 0) {
         setError(`${targetDate} 날짜에 데이터가 없습니다. 다른 날짜를 선택해주세요.`);
@@ -171,6 +318,12 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     // targetDate가 설정되지 않았으면 실행하지 않음
     if (!targetDate) return;
+    
+    // POST 데이터가 있으면 기존 데이터 로딩 로직을 건너뜀
+    if (location.state) {
+      console.log('POST 데이터가 있어서 기존 데이터 로딩 로직을 건너뜀');
+      return;
+    }
     
     console.log('🔄 useEffect 실행 - targetDate 변경됨:', targetDate);
     console.log('🧹 stocks 상태 즉시 초기화 (useEffect 시작 시)');
@@ -229,9 +382,8 @@ const Dashboard: React.FC = () => {
           sample: realStockData.slice(0, 2)
         });
         
-        // stocks 상태 업데이트 및 ref 동기화
-        setStocks(realStockData);
-        stocksRef.current = realStockData;
+        // 즐겨찾기 상태 초기화 후 stocks 상태 업데이트 및 ref 동기화
+        await initializeFavoriteStates(realStockData);
         
         setLastUpdated(new Date().toLocaleString('ko-KR'));
         setDataDate(formatDataDate(targetDate));
@@ -253,14 +405,13 @@ const Dashboard: React.FC = () => {
           setError('데이터를 불러오는 중 오류가 발생했습니다. Firebase 연결을 확인해주세요.');
         }
       } finally {
-        console.log('로딩 상태 해제');
         setLoading(false);
       }
     };
-    
-    // 즉시 데이터 로딩 실행
+
+    // 데이터 로딩 실행
     loadData();
-  }, [targetDate]); // targetDate만 의존성으로 설정 (timeFilter 제거)
+  }, [targetDate, timeFilter]); // location.state는 의존성에서 제외
 
   // timeFilter 변경 시에는 데이터를 다시 로딩하지 않음
   // 모든 데이터 로딩은 targetDate 변경 시에만 처리
@@ -395,15 +546,34 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleFavoriteToggle = (stockId: string) => {
-    // 로컬 상태만 업데이트
-    setStocks(prevStocks =>
-      prevStocks.map(stock =>
-        stock.id === stockId
-          ? { ...stock, isFavorite: !stock.isFavorite }
-          : stock
-      )
-    );
+  const handleFavoriteToggle = async (stockId: string, sectorName: string) => {
+    try {
+      const stock = stocks.find(s => s.id === stockId);
+      if (!stock) return;
+
+      if (stock.isFavorite) {
+        // 즐겨찾기에서 제거
+        await removeFromFavorites(stockId);
+        console.log('즐겨찾기에서 제거됨:', sectorName);
+      } else {
+        // 즐겨찾기에 추가
+        await addToFavorites(stockId, sectorName);
+        console.log('즐겨찾기에 추가됨:', sectorName);
+      }
+
+      // 로컬 상태 업데이트
+      setStocks(prevStocks =>
+        prevStocks.map(s =>
+          s.id === stockId
+            ? { ...s, isFavorite: !s.isFavorite }
+            : s
+        )
+      );
+    } catch (error) {
+      console.error('즐겨찾기 토글 오류:', error);
+      // 오류 발생 시 사용자에게 알림
+      alert('즐겨찾기 변경 중 오류가 발생했습니다. 다시 시도해주세요.');
+    }
   };
 
   // 캘린더 관련 함수들
@@ -578,7 +748,7 @@ const Dashboard: React.FC = () => {
       '식품': 'Icon_Sector=Food.png',
       '음식료': 'Icon_Sector=Food.png',
       '패션': 'Icon_Sector=Fashion.png',
-      '엔터': 'Icon_Sector=Entertainment.png',
+      '엔터테인먼트': 'Icon_Sector=Entertainment.png',
       '여행': 'Icon_Sector=Travel.png',
       '디스플레이': 'Icon_Sector=Display.png',
       '바이오': 'Icon_Sector=Biotech.png',
@@ -663,7 +833,7 @@ const Dashboard: React.FC = () => {
           <div className="subtitle">{new Date(targetDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} 기준</div>
         </div>
         
-        {/* 날짜 변경 컨트롤 - 로딩 중에도 사용 가능 */}
+        {/* 날짜 변경 컨트롤 - 기존 기능 유지 */}
         <div className="date-filter-container">
           <div className="date-filter-buttons">
             <button 
@@ -718,22 +888,13 @@ const Dashboard: React.FC = () => {
           <div className="loading-text" style={{ fontSize: '14px', color: '#999' }}>
             {targetDate} 날짜의 섹터 데이터를 가져오는 중입니다
           </div>
-          <div className="loading-actions" style={{ marginTop: '20px' }}>
+          <div className="loading-actions">
             <button 
               className="force-reset-btn" 
               onClick={() => {
                 console.log('강제 로딩 상태 리셋');
                 setLoading(false);
                 setError('로딩이 중단되었습니다. 다시 시도해주세요.');
-              }}
-              style={{
-                padding: '8px 16px',
-                background: '#ff6b6b',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '14px',
-                cursor: 'pointer'
               }}
             >
               로딩 중단
@@ -756,7 +917,8 @@ const Dashboard: React.FC = () => {
   }
 
   // 에러가 있거나 데이터가 없을 때도 헤더와 풋터는 표시
-  if (error) {
+  // 단, 로딩 중이거나 POST 데이터가 있을 때는 오류 메시지를 표시하지 않음
+  if (error && !loading && !location.state && !isProcessingPostData) {
     return (
       <div className="dashboard-container">
         <Header currentPage="home" />
@@ -811,11 +973,11 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
         </div>
-
+        
         {/* 에러 메시지 */}
         <div className="no-data-container">
           <div className="no-data-icon">⚠️</div>
-          <h2>오류가 발생했습니다</h2>
+          <h2>데이터가 없거나 오류가 발생했습니다</h2>
           <p>{error}</p>
           <div className="no-data-actions">
             <button className="try-other-date-btn" onClick={() => window.location.reload()}>
@@ -895,25 +1057,38 @@ const Dashboard: React.FC = () => {
 
       {/* 통합 테이블 */}
       <div className="stock-table-container">
-        {error ? (
-          <div className="no-data-container">
-            <div className="no-data-icon">📊</div>
-            <h2>데이터를 찾을 수 없습니다</h2>
-            <p>{error}</p>
+        {loading ? (
+          <div className="favorites-loading-container">
+            <div className="loading-spinner"></div>
+            <h2>데이터를 불러오는 중...</h2>
+            <p>{targetDate} 날짜의 섹터 데이터를 가져오고 있습니다.</p>
+            <div className="loading-progress">
+              <div className="progress-bar">
+                <div className="progress-fill"></div>
+              </div>
+            </div>
+          </div>
+        ) : error && !location.state && !loading && !isProcessingPostData ? (
+          // POST 데이터가 없고 로딩 중이 아니고 POST 데이터 처리 중이 아닐 때만 오류 메시지 표시
+          <div className="favorites-no-data-container">
+            <div className="no-data-icon">⚠️</div>
+            <h2>데이터가 없거나 오류가 발생했습니다</h2>
+            <p>{targetDate} 날짜에 데이터가 없습니다. 다른 날짜를 선택해주세요.</p>
             <div className="no-data-actions">
               <button className="try-other-date-btn" onClick={() => handleTimeFilterChange('1일')}>
-                다른 날짜 시도하기
+                새로고침
               </button>
             </div>
           </div>
-        ) : stocks.length === 0 ? (
-          <div className="no-data-container">
-            <div className="no-data-icon">📊</div>
-            <h2>데이터를 찾을 수 없습니다</h2>
-            <p>{targetDate} 날짜에 섹터 데이터가 없습니다. 다른 날짜를 선택해주세요.</p>
+        ) : stocks.length === 0 && !location.state && !loading && !isProcessingPostData ? (
+          // POST 데이터가 없고 로딩 중이 아니고 POST 데이터 처리 중이 아닐 때만 데이터 없음 메시지 표시
+          <div className="favorites-no-data-container">
+            <div className="no-data-icon">⚠️</div>
+            <h2>데이터가 없거나 오류가 발생했습니다</h2>
+            <p>{targetDate} 날짜에 데이터가 없습니다. 다른 날짜를 선택해주세요.</p>
             <div className="no-data-actions">
               <button className="try-other-date-btn" onClick={() => handleTimeFilterChange('1일')}>
-                다른 날짜 시도하기
+                새로고침
               </button>
             </div>
           </div>
@@ -944,7 +1119,7 @@ const Dashboard: React.FC = () => {
                     className={`favorite-icon ${stock.isFavorite ? 'active' : 'inactive'}`}
                     onClick={(e) => {
                       e.stopPropagation(); // 행 클릭 이벤트 전파 방지
-                      handleFavoriteToggle(stock.id);
+                      handleFavoriteToggle(stock.id, stock.sector);
                     }}
                   >
                     {stock.isFavorite ? '★' : '☆'}

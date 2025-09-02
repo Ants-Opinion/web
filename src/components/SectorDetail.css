@@ -156,6 +156,7 @@
   padding: 10px 20px;
   box-sizing: border-box;
   white-space: nowrap;
+  position: relative;
 }
 
 .section-icon {
@@ -202,6 +203,49 @@
 .section-name {
   color: #0B1215;
   font-size: 18px;
+}
+
+/* Back Button */
+.back-button-container {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.back-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #F1F1F1;
+  border: none;
+  border-radius: 8px;
+  color: #0B1215;
+  font-size: 14px;
+  font-family: Pretendard;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.back-button:hover {
+  background: #E5E5E5;
+  transform: translateY(-1px);
+}
+
+.back-button:active {
+  transform: translateY(0);
+}
+
+.back-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.back-text {
+  white-space: nowrap;
 }
 
 /* Time Filter - Deprecated (replaced by filter-date-container) */

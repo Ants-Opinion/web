@@ -877,6 +877,27 @@ const SectorDetail: React.FC = () => {
     }
   };
 
+  // 돌아가기 버튼 클릭 핸들러
+  const handleGoBack = () => {
+    // 현재 선택된 기간필터와 날짜를 POST 방식으로 대시보드로 전송
+    const postData = {
+      filter: timeFilter,
+      date: selectedDate
+    };
+    
+    console.log('=== 돌아가기 버튼 클릭 ===');
+    console.log('현재 timeFilter:', timeFilter);
+    console.log('현재 selectedDate:', selectedDate);
+    console.log('POST 데이터:', postData);
+    console.log('========================');
+    
+    // POST 방식으로 대시보드로 이동
+    navigate('/', { 
+      state: postData,
+      replace: true 
+    });
+  };
+
   if (loading) {
     return (
       <div className="sector-detail-container">
@@ -1016,7 +1037,13 @@ const SectorDetail: React.FC = () => {
             <h1 className="section-name">{data.sectorId}</h1>
             <p className="section-date">{selectedDate ? new Date(selectedDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : '오늘'} 기준</p>
           </div>
-            </div>
+          <div className="back-button-container">
+            <button className="back-button" onClick={handleGoBack}>
+              <img src="/img/icon_Chvron=chvron_left.png" alt="돌아가기" className="back-icon" />
+              <span className="back-text">돌아가기</span>
+            </button>
+          </div>
+        </div>
 
         {/* Filter and Date Container */}
         <div className="filter-date-container">

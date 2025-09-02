@@ -107,35 +107,3 @@
 .logo:hover {
   opacity: 0.8;
 }
-
-/* 반응형 디자인 */
-@media (max-width: 768px) {
-  .dashboard-header {
-    padding: 0 20px;
-  }
-  
-  .nav-menu {
-    position: static;
-    transform: none;
-    gap: 20px;
-  }
-  
-  .logo-text {
-    font-size: 18px;
-  }
-  
-  .nav-item {
-    font-size: 16px;
-  }
-  
-  .right-buttons {
-    gap: 15px;
-  }
-  
-  .mypage-btn,
-  .logout-btn {
-    height: 35px;
-    padding: 8px 12px;
-    font-size: 13px;
-  }
-}

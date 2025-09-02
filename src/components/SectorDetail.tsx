@@ -68,7 +68,7 @@ const SectorDetail: React.FC = () => {
   const [modalTitle, setModalTitle] = useState('');
   const [modalReactions, setModalReactions] = useState<ReactionItem[]>([]);
   const [sentimentCriteria, setSentimentCriteria] = useState<SentimentCriteria | null>(null);
-  const [timeFilter, setTimeFilter] = useState<'1일' | '1주' | '1개월'>('1일');
+  const [timeFilter, setTimeFilter] = useState<'1일' | '1주'>('1일');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [chartTab, setChartTab] = useState<'대중 반응' | '종합점수'>('대중 반응');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -92,7 +92,7 @@ const SectorDetail: React.FC = () => {
     const decodedFilter = decodeURIComponent(filter);
     const decodedDate = decodeURIComponent(date);
     
-    setTimeFilter(decodedFilter as '1일' | '1주' | '1개월');
+    setTimeFilter(decodedFilter as '1일' | '1주');
     setSelectedDate(decodedDate);
     console.log(`선택된 시간 필터: ${decodedFilter}, 선택된 날짜: ${decodedDate}`);
     
@@ -131,10 +131,6 @@ const SectorDetail: React.FC = () => {
           // 1주 필터: 7일간 데이터 합산
           console.log('1주 필터 선택: 7일간 데이터 합산 중...');
           sectorData = await loadWeekSectorData(sectorId, selectedDate || new Date().toISOString().split('T')[0]);
-        } else if (timeFilter === '1개월') {
-          // 1개월 필터: 30일간 데이터 합산
-          console.log('1개월 필터 선택: 30일간 데이터 합산 중...');
-          sectorData = await loadMonthSectorData(sectorId, selectedDate || new Date().toISOString().split('T')[0]);
         } else {
           // 1일 필터: 단일 날짜 데이터
           console.log('1일 필터 선택: 단일 날짜 데이터 로딩 중...');
@@ -245,42 +241,7 @@ const SectorDetail: React.FC = () => {
     };
   };
 
-  const loadMonthSectorData = async (sectorId: string, baseDate: string) => {
-    const monthData: SectorDetailData[] = [];
-    const base = new Date(baseDate);
 
-    for (let i = 0; i < 30; i++) {
-      const currentDate = new Date(base);
-      currentDate.setDate(base.getDate() - i);
-      const formattedDate = currentDate.toISOString().split('T')[0];
-      const dailyData = await getSectorDetailData(sectorId, formattedDate);
-      if (dailyData) {
-        monthData.push(dailyData);
-      }
-    }
-
-    if (monthData.length === 0) return null;
-
-    const aggregatedCounts = monthData.reduce((acc, curr) => {
-      acc.positive += curr.counts.positive;
-      acc.negative += curr.counts.negative;
-      acc.neutral += curr.counts.neutral;
-      return acc;
-    }, { positive: 0, negative: 0, neutral: 0 });
-
-    const aggregatedReactions = monthData.flatMap(d => d.reactions);
-    const firstAvailableData = monthData[0]; // Use the most recent available data for summary/icon
-
-    return {
-      sectorId: firstAvailableData.sectorId,
-      date: baseDate, // Display the base date for the aggregated view
-      summary: firstAvailableData.summary,
-      headline: firstAvailableData.headline, // 헤드라인 정보 포함
-      reactions: aggregatedReactions,
-      counts: aggregatedCounts,
-      icon: firstAvailableData.icon, // 아이콘 정보 포함
-    };
-  };
 
 
 
@@ -688,7 +649,7 @@ const SectorDetail: React.FC = () => {
     return '';
   };
 
-  const handleFilterChange = (filter: '1일' | '1주' | '1개월') => {
+  const handleFilterChange = (filter: '1일' | '1주') => {
     setTimeFilter(filter);
     if (filter === '1일') {
       setSearchParams({ filter, date: selectedDate });
@@ -1060,12 +1021,7 @@ const SectorDetail: React.FC = () => {
             >
               1주
             </button>
-            <button 
-              className={`filter-btn ${timeFilter === '1개월' ? 'active' : ''}`}
-              onClick={() => handleFilterChange('1개월')}
-            >
-              1개월
-            </button>
+
           </div>
           
           {/* Date Selector */}

@@ -154,7 +154,7 @@ const MyPage: React.FC = () => {
   if (loading) {
     return (
       <div className="mypage-container">
-        <Header user={user} />
+        <Header currentPage="mypage" />
         <div className="loading-container">
           <div className="loading-spinner"></div>
           <p>데이터를 불러오는 중...</p>
@@ -165,7 +165,7 @@ const MyPage: React.FC = () => {
 
   return (
     <div className="mypage-container">
-      <Header user={user} />
+      <Header currentPage="mypage" />
       
       <div className="mypage-content">
         <div className="mypage-header">

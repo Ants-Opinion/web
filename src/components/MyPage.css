@@ -7,7 +7,7 @@
   max-width: 800px;
   margin: 0 auto;
   padding: 32px 24px;
-  margin-top: 120px; /* 헤더 높이(85px) + 추가 여백(35px) */
+  margin-top: 85px; /* 헤더 높이만큼만 */
 }
 
 .mypage-header {

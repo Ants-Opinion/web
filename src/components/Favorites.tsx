@@ -27,7 +27,7 @@ interface StockItem {
   updatedAt: string;
 }
 
-type TimeFilter = '1일' | '1주' | '1개월';
+type TimeFilter = '1일' | '1주';
 
 const Favorites: React.FC = () => {
   const [stocks, setStocks] = useState<StockItem[]>([]);
@@ -66,7 +66,7 @@ const Favorites: React.FC = () => {
       
       let shouldReloadData = false;
       
-      if (filter && ['1일', '1주', '1개월'].includes(filter)) {
+      if (filter && ['1일', '1주'].includes(filter)) {
         if (timeFilter !== filter) {
           setTimeFilter(filter as TimeFilter);
           shouldReloadData = true;
@@ -118,9 +118,7 @@ const Favorites: React.FC = () => {
       if (filter === '1주') {
         const weekData = await loadWeekData(date);
         realStockData = weekData;
-      } else if (filter === '1개월') {
-        const monthData = await loadMonthData(date);
-        realStockData = monthData;
+
       } else {
         realStockData = await getRealStockData(date);
       }
@@ -222,9 +220,7 @@ const Favorites: React.FC = () => {
       if (timeFilter === '1주') {
         const weekData = await loadWeekData(targetDate);
         realStockData = weekData;
-      } else if (timeFilter === '1개월') {
-        const monthData = await loadMonthData(targetDate);
-        realStockData = monthData;
+
       } else {
         realStockData = await getRealStockData(targetDate);
       }
@@ -365,10 +361,7 @@ const Favorites: React.FC = () => {
     return await getRealStockData(date);
   };
 
-  // 1개월 데이터 로딩
-  const loadMonthData = async (date: string) => {
-    return await getRealStockData(date);
-  };
+
 
   if (!user) {
     return null;
@@ -380,7 +373,7 @@ const Favorites: React.FC = () => {
       
       {/* 메인 제목 */}
       <div className="main-title-container">
-        <div className="main-title">사람들의 반응</div>
+        <div className="main-title">사람들의 반응(즐겨찾기)</div>
         <div className="subtitle">{new Date(targetDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} 기준</div>
       </div>
       
@@ -399,12 +392,7 @@ const Favorites: React.FC = () => {
           >
             <span className="date-filter-text">1주</span>
           </button>
-          <button 
-            className={`date-filter-btn ${timeFilter === '1개월' ? 'active' : ''}`}
-            onClick={() => handleTimeFilterChange('1개월')}
-          >
-            <span className="date-filter-text">1개월</span>
-          </button>
+
         </div>
         
         {/* 날짜 선택 컨트롤 */}

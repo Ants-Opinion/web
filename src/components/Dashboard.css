@@ -93,7 +93,7 @@
 
 .date-filter-btn {
   width: 52px;
-  height: 29px;
+  height: 35px;
   padding: 9px 13px;
   background: #F1F1F1;
   border-radius: 16px;
@@ -152,6 +152,7 @@
   top: 50% !important;
   transform: translateY(-50%) !important;
   z-index: 10 !important;
+  height: 35px; /* 기간 필터 버튼과 동일한 높이 */
 }
 
 .date-arrow {

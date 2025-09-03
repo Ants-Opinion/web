@@ -37,7 +37,7 @@ const Dashboard: React.FC = () => {
   const [targetDate, setTargetDate] = useState<string>('');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarPosition, setCalendarPosition] = useState({ x: 0, y: 0 });
-  const [isProcessingPostData, setIsProcessingPostData] = useState(false);
+
   const user = auth.currentUser;
 
   const navigate = useNavigate();
@@ -52,10 +52,6 @@ const Dashboard: React.FC = () => {
       const postData = location.state.postData;
       console.log('POST 데이터 받음:', postData);
       
-      // POST 데이터 처리 시작
-      setIsProcessingPostData(true);
-      setLoading(true);
-      
       // POST 데이터를 기반으로 초기 상태 설정
       if (postData.targetDate) {
         setTargetDate(postData.targetDate);
@@ -64,13 +60,15 @@ const Dashboard: React.FC = () => {
         setTimeFilter(postData.timeFilter);
       }
       
-      // POST 데이터 처리 완료
+      // POST 데이터로 실제 데이터 로딩
+      loadDataForPostData();
+      
+      // POST 데이터 처리 완료 후 location.state 정리 (약간의 지연 후)
       setTimeout(() => {
-        setIsProcessingPostData(false);
-        setLoading(false);
-      }, 1000);
+        navigate(location.pathname, { replace: true, state: null });
+      }, 100);
     }
-  }, [location.state]);
+  }, [location.state, navigate, location.pathname]);
 
   // 즐겨찾기 상태 초기화
   const initializeFavoriteStates = async (stocksData: StockItem[]) => {
@@ -120,9 +118,12 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // 초기 날짜 설정
+  // 초기 날짜 설정 (POST 데이터가 없을 때만)
   useEffect(() => {
     const initializeDate = async () => {
+      // POST 데이터가 있으면 초기화하지 않음
+      if (location.state?.postData) return;
+      
       try {
         const latestDate = await getLatestDate();
         if (latestDate && !targetDate) {
@@ -137,21 +138,16 @@ const Dashboard: React.FC = () => {
     };
     
     initializeDate();
-  }, [targetDate]);
+  }, [targetDate, location.state]);
 
   // 데이터 로딩
   useEffect(() => {
-    if (targetDate && !isProcessingPostData) {
+    if (targetDate) {
       loadData();
     }
-  }, [targetDate, timeFilter, isProcessingPostData]);
+  }, [targetDate, timeFilter]);
 
-  // POST 데이터가 있으면 해당 데이터로 로딩
-  useEffect(() => {
-    if (location.state && location.state.postData && isProcessingPostData) {
-      loadDataForPostData();
-    }
-  }, [location.state, isProcessingPostData]);
+
 
   // 데이터 로딩 함수
   const loadData = async () => {
@@ -308,7 +304,12 @@ const Dashboard: React.FC = () => {
 
   // 행 클릭 핸들러
   const handleRowClick = (stock: StockItem) => {
-    navigate(`/sector/${stock.id}`);
+    const params = new URLSearchParams();
+    params.set('filter', timeFilter);
+    if (targetDate) {
+      params.set('date', targetDate);
+    }
+    navigate(`/sector/${stock.id}?${params.toString()}`);
   };
 
   // 1주 데이터 로딩
@@ -385,7 +386,7 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
           </div>
-        ) : error && !location.state && !loading && !isProcessingPostData ? (
+        ) : error && !location.state?.postData && !loading ? (
           <div className="favorites-no-data-container">
             <div className="no-data-icon">⚠️</div>
             <h2>데이터가 없거나 오류가 발생했습니다</h2>
@@ -404,7 +405,7 @@ const Dashboard: React.FC = () => {
               </button>
             </div>
           </div>
-        ) : stocks.length === 0 && !location.state && !loading && !isProcessingPostData ? (
+        ) : stocks.length === 0 && !location.state?.postData && !loading ? (
           <div className="favorites-no-data-container">
             <div className="no-data-icon">⚠️</div>
             <h2>데이터가 없거나 오류가 발생했습니다</h2>

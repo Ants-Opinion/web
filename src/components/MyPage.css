@@ -7,7 +7,7 @@
   max-width: 800px;
   margin: 0 auto;
   padding: 32px 24px;
-  margin-top: 120px; /* 헤더 높이(85px) + 추가 여백(35px) */
+  margin-top: 85px; /* 헤더 높이만큼만 여백 설정 */
 }
 
 .mypage-header {
@@ -131,7 +131,8 @@
 
 .form-input {
   width: 100%;
-  padding: 12px 16px;
+  height: 39px;
+  padding: 9px 16px;
   border: 1px solid #dee2e6;
   border-radius: 8px;
   font-size: 14px;
@@ -166,20 +167,22 @@
 }
 
 .update-btn {
-  padding: 12px 20px;
-  background: #28a745;
-  color: white;
+  height: 39px;
+  padding: 9px 13px;
+  background: #F1F1F1;
+  color: #0B1215;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 14px;
-  font-weight: 500;
+  font-family: Pretendard;
+  font-weight: 400;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease;
   white-space: nowrap;
 }
 
 .update-btn:hover:not(:disabled) {
-  background: #218838;
+  background: #E5E5E5;
 }
 
 .update-btn:disabled {

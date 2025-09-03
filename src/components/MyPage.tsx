@@ -277,8 +277,8 @@ const MyPage: React.FC = () => {
             </div>
           </section>
 
-          {/* 감정 분류 기준 섹션 */}
-          <section className="mypage-section">
+          {/* 감정 분류 기준 섹션 - 주석처리됨 */}
+          {/* <section className="mypage-section">
             <h2>감정 분류 기준</h2>
             <p className="section-description">
               포스트의 점수를 기준으로 긍정/부정/중립을 분류하는 기준을 설정하세요.<br/>
@@ -383,7 +383,7 @@ const MyPage: React.FC = () => {
             >
               {saving ? '저장 중...' : '감정 분류 기준 저장'}
             </button>
-          </section>
+          </section> */}
         </div>
       </div>
       <Footer />

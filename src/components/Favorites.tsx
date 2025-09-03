@@ -38,6 +38,8 @@ const Favorites: React.FC = () => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarPosition, setCalendarPosition] = useState({ x: 0, y: 0 });
   const [isProcessingPostData, setIsProcessingPostData] = useState(false);
+  const [hasProcessedPostData, setHasProcessedPostData] = useState(false);
+
   const [favorites, setFavorites] = useState<FavoriteSector[]>([]);
   const user = auth.currentUser;
 
@@ -49,46 +51,44 @@ const Favorites: React.FC = () => {
 
   // POST 데이터에서 초기값 읽어오기
   useEffect(() => {
-    const postData = location.state as { filter?: string; date?: string } | null;
-    
-    if (postData) {
-      const { filter, date } = postData;
-      
-      console.log('=== 즐겨찾기 POST 데이터 읽기 ===');
-      console.log('POST 데이터:', postData);
-      console.log('filter:', filter);
-      console.log('date:', date);
-      
+    if (location.state && location.state.postData) {
+      // POST 데이터 처리 시작을 가장 먼저 설정
+      setIsProcessingPostData(true);
       setError('');
       setLoading(true);
-      setStocks([]);
-      setIsProcessingPostData(true);
       
-      let shouldReloadData = false;
+      const postData = location.state.postData;
+      console.log('=== 즐겨찾기 POST 데이터 읽기 ===');
+      console.log('POST 데이터:', postData);
       
-      if (filter && ['1일', '1주'].includes(filter)) {
-        if (timeFilter !== filter) {
-          setTimeFilter(filter as TimeFilter);
-          shouldReloadData = true;
-        }
+      // POST 데이터를 기반으로 초기 상태 설정
+      if (postData.targetDate) {
+        setTargetDate(postData.targetDate);
+      }
+      if (postData.timeFilter) {
+        setTimeFilter(postData.timeFilter);
       }
       
-      if (date) {
-        if (targetDate !== date) {
-          setTargetDate(date);
-          shouldReloadData = true;
-        }
-      }
-      
-      if (shouldReloadData && date) {
-        loadDataForPostData(filter as TimeFilter, date);
-      } else {
-        setLoading(false);
-      }
-      
-      navigate(location.pathname, { replace: true, state: null });
+      // POST 데이터로 실제 데이터 로딩
+      loadDataForPostData()
+        .then(() => {
+          // POST 데이터 처리 완료 후 location.state 정리
+          setTimeout(() => {
+            setIsProcessingPostData(false);
+            setHasProcessedPostData(true);
+            navigate(location.pathname, { replace: true, state: null });
+          }, 50);
+        })
+        .catch(() => {
+          // 에러가 발생해도 POST 데이터 처리 완료 처리
+          setTimeout(() => {
+            setIsProcessingPostData(false);
+            setHasProcessedPostData(true);
+            navigate(location.pathname, { replace: true, state: null });
+          }, 50);
+        });
     }
-  }, [location.state, timeFilter, targetDate, navigate, location.pathname]);
+  }, [location.state, navigate, location.pathname]);
 
   // 즐겨찾기 상태 초기화 함수
   const initializeFavoriteStates = async (stockData: StockItem[]) => {
@@ -99,40 +99,32 @@ const Favorites: React.FC = () => {
           return { ...stock, isFavorite };
         })
       );
-      setStocks(stocksWithFavorites);
-      stocksRef.current = stocksWithFavorites;
+      return stocksWithFavorites;
     } catch (error) {
       console.error('즐겨찾기 상태 초기화 오류:', error);
-      setStocks(stockData);
-      stocksRef.current = stockData;
+      return stockData;
     }
   };
 
-  // POST 데이터를 위한 별도 데이터 로딩 함수
-  const loadDataForPostData = async (filter: TimeFilter, date: string) => {
+  // POST 데이터를 기반으로 데이터 로딩
+  const loadDataForPostData = async () => {
+    if (!location.state || !location.state.postData) return;
+    
+    const postData = location.state.postData;
+    console.log('POST 데이터로 로딩 시작:', postData);
+    
     try {
-      console.log('POST 데이터로 직접 데이터 로딩 시작:', { filter, date });
-      
-      let realStockData: StockItem[] = [];
-      
-      if (filter === '1주') {
-        const weekData = await loadWeekData(date);
-        realStockData = weekData;
-
+      // 즐겨찾기 목록이 비어있으면 먼저 로드
+      if (favorites.length === 0) {
+        console.log('즐겨찾기 목록이 비어있어서 먼저 로드합니다.');
+        const userFavorites = await getUserFavorites();
+        setFavorites(userFavorites);
+        
+        // 즐겨찾기 목록을 사용하여 데이터 로딩
+        await loadDataWithFavorites(postData, userFavorites);
       } else {
-        realStockData = await getRealStockData(date);
-      }
-      
-      // 즐겨찾기 항목만 필터링
-      const favoriteIds = favorites.map(fav => fav.sectorId);
-      const favoriteStocks = realStockData.filter(stock => favoriteIds.includes(stock.id));
-      
-      await initializeFavoriteStates(favoriteStocks);
-      
-      if (favoriteStocks.length === 0) {
-        setError('즐겨찾기된 섹터가 없습니다.');
-      } else {
-        setError('');
+        // 즐겨찾기 목록이 있으면 바로 데이터 로딩
+        await loadDataWithFavorites(postData, favorites);
       }
       
     } catch (err) {
@@ -140,15 +132,46 @@ const Favorites: React.FC = () => {
       setError('데이터를 불러오는 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
-      setIsProcessingPostData(false);
     }
   };
 
-  // 초기 기준일자 설정
+  // 즐겨찾기 목록을 사용하여 데이터 로딩
+  const loadDataWithFavorites = async (postData: any, favoritesList: FavoriteSector[]) => {
+    let realStockData: StockItem[] = [];
+    
+    if (postData.timeFilter === '1일') {
+      realStockData = await getRealStockData(postData.targetDate);
+    } else if (postData.timeFilter === '1주') {
+      realStockData = await loadWeekData(postData.targetDate);
+    }
+    
+    // 즐겨찾기 항목만 필터링
+    const favoriteIds = favoritesList.map(fav => fav.sectorId);
+    const favoriteStocks = realStockData.filter(stock => favoriteIds.includes(stock.id));
+    
+    // 즐겨찾기 상태 초기화
+    const stocksWithFavorites = await initializeFavoriteStates(favoriteStocks);
+    setStocks(stocksWithFavorites);
+    stocksRef.current = stocksWithFavorites;
+    
+    // 오류 메시지 설정 (즐겨찾기된 섹터가 없는 경우에만)
+    if (favoriteStocks.length === 0) {
+      setError('즐겨찾기된 섹터가 없습니다.');
+    } else {
+      setError('');
+    }
+    
+    console.log('POST 데이터 로딩 완료:', stocksWithFavorites);
+  };
+
+  // 초기 기준일자 설정 (POST 데이터가 없을 때만)
   useEffect(() => {
     let isMounted = true;
     
     const initializeDate = async () => {
+      // POST 데이터가 있거나 POST 데이터 처리 중이면 초기화하지 않음
+      if (location.state?.postData || isProcessingPostData) return;
+      
       try {
         if (targetDate) {
           return;
@@ -171,14 +194,14 @@ const Favorites: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [targetDate]);
+  }, [targetDate, location.state, isProcessingPostData]);
 
-  // 날짜가 변경될 때마다 데이터 로딩
+  // 날짜가 변경될 때마다 데이터 로딩 (POST 데이터 처리 완료 후 제외)
   useEffect(() => {
-    if (targetDate && !location.state) {
+    if (targetDate && !location.state?.postData && !isProcessingPostData && !hasProcessedPostData) {
       loadData();
     }
-  }, [targetDate, timeFilter]);
+  }, [targetDate, timeFilter, location.state, isProcessingPostData, hasProcessedPostData]);
 
   // 즐겨찾기 목록 로딩
   useEffect(() => {
@@ -229,15 +252,26 @@ const Favorites: React.FC = () => {
       const favoriteIds = favorites.map(fav => fav.sectorId);
       const favoriteStocks = realStockData.filter(stock => favoriteIds.includes(stock.id));
       
-      await initializeFavoriteStates(favoriteStocks);
+      // 즐겨찾기 상태 초기화
+      const stocksWithFavorites = await initializeFavoriteStates(favoriteStocks);
+      setStocks(stocksWithFavorites);
+      stocksRef.current = stocksWithFavorites;
       
-      if (favoriteStocks.length === 0) {
-        setError('즐겨찾기된 섹터가 없습니다.');
+      // POST 데이터 처리 중이 아닐 때만 오류 상태 설정
+      if (!isProcessingPostData) {
+        if (favoriteStocks.length === 0) {
+          setError('즐겨찾기된 섹터가 없습니다.');
+        } else {
+          setError('');
+        }
       }
       
     } catch (err) {
       console.error('데이터 로딩 오류:', err);
-      setError('데이터를 불러오는 중 오류가 발생했습니다.');
+      // POST 데이터 처리 중이 아닐 때만 오류 상태 설정
+      if (!isProcessingPostData) {
+        setError('데이터를 불러오는 중 오류가 발생했습니다.');
+      }
     } finally {
       setLoading(false);
     }
@@ -248,6 +282,7 @@ const Favorites: React.FC = () => {
     setTimeFilter(filter);
     setLoading(true);
     setError(''); // 에러 상태 초기화
+    setHasProcessedPostData(false); // POST 데이터 처리 완료 상태 리셋
   };
 
   // 날짜 변경
@@ -255,12 +290,14 @@ const Favorites: React.FC = () => {
     const currentDate = new Date(targetDate);
     currentDate.setDate(currentDate.getDate() - 1);
     setTargetDate(currentDate.toISOString().split('T')[0]);
+    setHasProcessedPostData(false); // POST 데이터 처리 완료 상태 리셋
   };
 
   const handleNextDay = () => {
     const currentDate = new Date(targetDate);
     currentDate.setDate(currentDate.getDate() + 1);
     setTargetDate(currentDate.toISOString().split('T')[0]);
+    setHasProcessedPostData(false); // POST 데이터 처리 완료 상태 리셋
   };
 
   // 날짜 클릭 시 캘린더 열기
@@ -274,6 +311,7 @@ const Favorites: React.FC = () => {
   const handleDateSelect = (date: string) => {
     setTargetDate(date);
     setIsCalendarOpen(false);
+    setHasProcessedPostData(false); // POST 데이터 처리 완료 상태 리셋
   };
 
   // 캘린더 닫기 핸들러
@@ -358,7 +396,9 @@ const Favorites: React.FC = () => {
     if (targetDate) {
       params.set('date', targetDate);
     }
-    navigate(`/sector/${stock.id}?${params.toString()}`);
+    navigate(`/sector/${stock.id}?${params.toString()}`, {
+      state: { fromPage: 'favorites' }
+    });
   };
 
   // 1주 데이터 로딩
@@ -435,7 +475,7 @@ const Favorites: React.FC = () => {
               </div>
             </div>
           </div>
-        ) : error && !location.state && !loading && !isProcessingPostData ? (
+        ) : error && !isProcessingPostData && !loading && stocks.length === 0 && targetDate ? (
           <div className="favorites-no-data-container">
             <div className="no-data-icon">⚠️</div>
             <h2>데이터가 없거나 오류가 발생했습니다</h2>

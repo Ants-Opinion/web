@@ -309,7 +309,9 @@ const Dashboard: React.FC = () => {
     if (targetDate) {
       params.set('date', targetDate);
     }
-    navigate(`/sector/${stock.id}?${params.toString()}`);
+    navigate(`/sector/${stock.id}?${params.toString()}`, {
+      state: { fromPage: 'dashboard' }
+    });
   };
 
   // 1주 데이터 로딩

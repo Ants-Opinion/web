@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { auth } from '../firebase';
@@ -58,6 +58,7 @@ interface SectorDetailData {
 const SectorDetail: React.FC = () => {
   const { sectorId } = useParams<{ sectorId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [data, setData] = useState<SectorDetailData | null>(null);
@@ -840,7 +841,7 @@ const SectorDetail: React.FC = () => {
 
   // 돌아가기 버튼 클릭 핸들러
   const handleGoBack = () => {
-    // 현재 선택된 기간필터와 날짜를 POST 방식으로 대시보드로 전송
+    // 현재 선택된 기간필터와 날짜를 POST 방식으로 전송
     const postData = {
       timeFilter: timeFilter,
       targetDate: selectedDate
@@ -850,13 +851,24 @@ const SectorDetail: React.FC = () => {
     console.log('현재 timeFilter:', timeFilter);
     console.log('현재 selectedDate:', selectedDate);
     console.log('POST 데이터:', postData);
+    console.log('이전 페이지:', location.state?.fromPage);
     console.log('========================');
     
-    // POST 방식으로 대시보드로 이동
-    navigate('/', { 
-      state: { postData },
-      replace: true 
-    });
+    // 이전 페이지에 따라 적절한 페이지로 이동
+    const fromPage = location.state?.fromPage;
+    if (fromPage === 'favorites') {
+      // 즐겨찾기 페이지로 돌아가기
+      navigate('/favorites', { 
+        state: { postData },
+        replace: true 
+      });
+    } else {
+      // 기본적으로 대시보드로 돌아가기
+      navigate('/', { 
+        state: { postData },
+        replace: true 
+      });
+    }
   };
 
   if (loading) {

@@ -353,7 +353,12 @@ const Favorites: React.FC = () => {
 
   // 행 클릭 핸들러
   const handleRowClick = (stock: StockItem) => {
-    navigate(`/sector/${stock.id}`);
+    const params = new URLSearchParams();
+    params.set('filter', timeFilter);
+    if (targetDate) {
+      params.set('date', targetDate);
+    }
+    navigate(`/sector/${stock.id}?${params.toString()}`);
   };
 
   // 1주 데이터 로딩

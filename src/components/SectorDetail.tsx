@@ -96,11 +96,11 @@ const SectorDetail: React.FC = () => {
     setSelectedDate(decodedDate);
     console.log(`선택된 시간 필터: ${decodedFilter}, 선택된 날짜: ${decodedDate}`);
     
-    // 1일 필터인데 날짜가 없으면 기본값으로 오늘 날짜 설정
+    // 1일 필터인데 날짜가 없으면 기본값으로 실제 데이터가 있는 날짜 설정
     if (decodedFilter === '1일' && !decodedDate) {
-      const today = new Date().toISOString().split('T')[0];
-      setSelectedDate(today);
-      console.log(`1일 필터에 날짜가 없어 기본값으로 오늘 날짜 설정: ${today}`);
+      const defaultDate = '2025-08-17'; // 실제 데이터가 있는 날짜
+      setSelectedDate(defaultDate);
+      console.log(`1일 필터에 날짜가 없어 기본값으로 설정: ${defaultDate}`);
     }
   }, [searchParams]);
 
@@ -842,8 +842,8 @@ const SectorDetail: React.FC = () => {
   const handleGoBack = () => {
     // 현재 선택된 기간필터와 날짜를 POST 방식으로 대시보드로 전송
     const postData = {
-      filter: timeFilter,
-      date: selectedDate
+      timeFilter: timeFilter,
+      targetDate: selectedDate
     };
     
     console.log('=== 돌아가기 버튼 클릭 ===');
@@ -854,7 +854,7 @@ const SectorDetail: React.FC = () => {
     
     // POST 방식으로 대시보드로 이동
     navigate('/', { 
-      state: postData,
+      state: { postData },
       replace: true 
     });
   };
@@ -907,7 +907,7 @@ const SectorDetail: React.FC = () => {
             <h2>오류가 발생했습니다</h2>
             <p>{error}</p>
             <div className="error-actions">
-              <button className="back-home-btn" onClick={() => navigate('/')}>
+              <button className="back-home-btn" onClick={handleGoBack}>
                 홈으로 돌아가기
               </button>
               <button className="try-again-btn" onClick={() => window.location.reload()}>
@@ -933,7 +933,7 @@ const SectorDetail: React.FC = () => {
           <h2>데이터를 찾을 수 없습니다</h2>
           <p>{error || `섹터 "${sectorId}"의 데이터를 찾을 수 없습니다.`}</p>
           <div className="error-actions">
-            <button className="back-home-btn" onClick={() => navigate('/')}>
+            <button className="back-home-btn" onClick={handleGoBack}>
               홈으로 돌아가기
             </button>
             <button className="try-again-btn" onClick={() => window.location.reload()}>

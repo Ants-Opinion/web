@@ -107,3 +107,121 @@
 .logo:hover {
   opacity: 0.8;
 }
+
+/* ================================== */
+/* 모바일 반응형 디자인 */
+/* ================================== */
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    height: 70px;
+    padding: 0 15px;
+  }
+  
+  .logo {
+    width: 120px;
+    height: 36px;
+  }
+  
+  .nav-menu {
+    gap: 20px;
+  }
+  
+  .nav-item {
+    font-size: 16px;
+  }
+  
+  .mypage-btn {
+    height: 32px;
+    padding: 6px 10px;
+    margin-right: 10px;
+    font-size: 13px;
+  }
+  
+  .logout-btn {
+    height: 32px;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+  
+  .mypage-text,
+  .logout-text {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-header {
+    height: 60px;
+    padding: 0 10px;
+  }
+  
+  .logo {
+    width: 100px;
+    height: 30px;
+  }
+  
+  .nav-menu {
+    gap: 15px;
+  }
+  
+  .nav-item {
+    font-size: 14px;
+  }
+  
+  .mypage-btn {
+    height: 28px;
+    padding: 4px 8px;
+    margin-right: 8px;
+    font-size: 12px;
+  }
+  
+  .logout-btn {
+    height: 28px;
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+  
+  .mypage-text,
+  .logout-text {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 360px) {
+  .dashboard-header {
+    height: 55px;
+    padding: 0 8px;
+  }
+  
+  .logo {
+    width: 90px;
+    height: 27px;
+  }
+  
+  .nav-menu {
+    gap: 12px;
+  }
+  
+  .nav-item {
+    font-size: 13px;
+  }
+  
+  .mypage-btn {
+    height: 26px;
+    padding: 3px 6px;
+    margin-right: 6px;
+    font-size: 11px;
+  }
+  
+  .logout-btn {
+    height: 26px;
+    padding: 3px 6px;
+    font-size: 11px;
+  }
+  
+  .mypage-text,
+  .logout-text {
+    font-size: 11px;
+  }
+}

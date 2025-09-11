@@ -147,7 +147,14 @@ const Favorites: React.FC = () => {
     
     // 즐겨찾기 항목만 필터링
     const favoriteIds = favoritesList.map(fav => fav.sectorId);
-    const favoriteStocks = realStockData.filter(stock => favoriteIds.includes(stock.id));
+    const favoriteNames = favoritesList.map(fav => fav.sectorName);
+    console.log('POST 데이터 즐겨찾기 ID 목록:', favoriteIds);
+    console.log('POST 데이터 즐겨찾기 이름 목록:', favoriteNames);
+    
+    // ID와 이름 모두로 필터링 (realDataService에서 id가 실제로는 섹터 이름임)
+    const favoriteStocks = realStockData.filter(stock => 
+      favoriteIds.includes(stock.id) || favoriteNames.includes(stock.sector)
+    );
     
     // 즐겨찾기 상태 초기화
     const stocksWithFavorites = await initializeFavoriteStates(favoriteStocks);
@@ -196,13 +203,6 @@ const Favorites: React.FC = () => {
     };
   }, [targetDate, location.state, isProcessingPostData]);
 
-  // 날짜가 변경될 때마다 데이터 로딩 (POST 데이터 처리 완료 후 제외)
-  useEffect(() => {
-    if (targetDate && !location.state?.postData && !isProcessingPostData && !hasProcessedPostData) {
-      loadData();
-    }
-  }, [targetDate, timeFilter, location.state, isProcessingPostData, hasProcessedPostData]);
-
   // 즐겨찾기 목록 로딩
   useEffect(() => {
     if (user) {
@@ -210,13 +210,29 @@ const Favorites: React.FC = () => {
     }
   }, [user]);
 
+  // 즐겨찾기 목록이 로드된 후 데이터 로딩 (POST 데이터 처리 완료 후 제외)
+  useEffect(() => {
+    if (targetDate && favorites.length > 0 && !location.state?.postData && !isProcessingPostData && !hasProcessedPostData) {
+      loadData();
+    }
+  }, [targetDate, timeFilter, favorites, location.state, isProcessingPostData, hasProcessedPostData]);
+
   // 즐겨찾기 목록 가져오기
   const loadFavorites = async () => {
     try {
       const userFavorites = await getUserFavorites();
       setFavorites(userFavorites);
+      console.log('즐겨찾기 목록 로드됨:', userFavorites);
+      
+      // 즐겨찾기가 없으면 로딩 상태 해제
+      if (userFavorites.length === 0) {
+        setLoading(false);
+        setError('즐겨찾기된 섹터가 없습니다. 대시보드에서 섹터를 즐겨찾기에 추가해주세요.');
+      }
     } catch (err) {
       console.error('즐겨찾기 로딩 오류:', err);
+      setError('즐겨찾기 목록을 불러오는 중 오류가 발생했습니다.');
+      setLoading(false);
     }
   };
 
@@ -238,24 +254,41 @@ const Favorites: React.FC = () => {
       setLoading(true);
       setError('');
       
+      console.log('=== 즐겨찾기 데이터 로딩 시작 ===');
+      console.log('현재 즐겨찾기 목록:', favorites);
+      console.log('대상 날짜:', targetDate);
+      console.log('시간 필터:', timeFilter);
+      
       let realStockData: StockItem[] = [];
       
       if (timeFilter === '1주') {
         const weekData = await loadWeekData(targetDate);
         realStockData = weekData;
-
       } else {
         realStockData = await getRealStockData(targetDate);
       }
 
+      console.log('가져온 전체 데이터:', realStockData.length, '개');
+
       // 즐겨찾기 항목만 필터링
       const favoriteIds = favorites.map(fav => fav.sectorId);
-      const favoriteStocks = realStockData.filter(stock => favoriteIds.includes(stock.id));
+      const favoriteNames = favorites.map(fav => fav.sectorName);
+      console.log('즐겨찾기 ID 목록:', favoriteIds);
+      console.log('즐겨찾기 이름 목록:', favoriteNames);
+      
+      // ID와 이름 모두로 필터링 (realDataService에서 id가 실제로는 섹터 이름임)
+      const favoriteStocks = realStockData.filter(stock => 
+        favoriteIds.includes(stock.id) || favoriteNames.includes(stock.sector)
+      );
+      console.log('필터링된 즐겨찾기 데이터:', favoriteStocks.length, '개');
+      console.log('필터링된 섹터들:', favoriteStocks.map(s => s.sector));
       
       // 즐겨찾기 상태 초기화
       const stocksWithFavorites = await initializeFavoriteStates(favoriteStocks);
       setStocks(stocksWithFavorites);
       stocksRef.current = stocksWithFavorites;
+      
+      console.log('최종 설정된 stocks:', stocksWithFavorites.length, '개');
       
       // POST 데이터 처리 중이 아닐 때만 오류 상태 설정
       if (!isProcessingPostData) {
@@ -477,21 +510,31 @@ const Favorites: React.FC = () => {
           </div>
         ) : error && !isProcessingPostData && !loading && stocks.length === 0 && targetDate ? (
           <div className="favorites-no-data-container">
-            <div className="no-data-icon">⚠️</div>
-            <h2>데이터가 없거나 오류가 발생했습니다</h2>
-            <p>{targetDate} 날짜에 데이터가 없습니다. 다른 날짜를 선택해주세요.</p>
+            <div className="no-data-icon">⭐</div>
+            <h2>{error.includes('즐겨찾기된 섹터가 없습니다') ? '즐겨찾기된 섹터가 없습니다' : '데이터가 없거나 오류가 발생했습니다'}</h2>
+            <p>
+              {error.includes('즐겨찾기된 섹터가 없습니다') 
+                ? '대시보드에서 관심 있는 섹터를 즐겨찾기에 추가해주세요.' 
+                : `${targetDate} 날짜에 데이터가 없습니다. 다른 날짜를 선택해주세요.`}
+            </p>
             <div className="no-data-actions">
-              <button className="try-other-date-btn" onClick={() => {
-                setTimeFilter('1일');
-                setError('');
-                setLoading(true);
-                // 데이터 다시 로딩
-                setTimeout(() => {
-                  loadData();
-                }, 100);
-              }}>
-                새로고침
-              </button>
+              {error.includes('즐겨찾기된 섹터가 없습니다') ? (
+                <button className="try-other-date-btn" onClick={() => navigate('/')}>
+                  대시보드로 이동
+                </button>
+              ) : (
+                <button className="try-other-date-btn" onClick={() => {
+                  setTimeFilter('1일');
+                  setError('');
+                  setLoading(true);
+                  // 데이터 다시 로딩
+                  setTimeout(() => {
+                    loadData();
+                  }, 100);
+                }}>
+                  새로고침
+                </button>
+              )}
             </div>
           </div>
 
@@ -545,38 +588,46 @@ const Favorites: React.FC = () => {
                   </div>
                 </div>
                 <div className="stock-right">
-                  <div className="stock-data-column">
+                  <div className="stock-data-column" data-label="종합점수">
                     <div className="stock-data-value score">{stock.totalScore.toFixed(1)}점</div>
                     <div className="stock-data-change score">
                       {stock.scoreChange > 0 ? '+' : ''}{stock.scoreChange.toFixed(1)}%p
                     </div>
                   </div>
-                  <div className="stock-data-column">
+                  <div className="stock-data-column" data-label="긍정적 의견">
                     <div className="stock-data-value positive">{stock.positiveOpinions}개</div>
                     <div className="stock-data-change positive">
                       {stock.positiveChange > 0 ? '+' : ''}{stock.positiveChange}%
                     </div>
                   </div>
-                  <div className="stock-data-column">
+                  <div className="stock-data-column" data-label="부정적 의견">
                     <div className="stock-data-value negative">{stock.negativeOpinions}개</div>
                     <div className="stock-data-change negative">
                       {stock.negativeChange > 0 ? '+' : ''}{stock.negativeChange}%
                     </div>
                   </div>
-                  <div className="stock-data-column">
+                  <div className="stock-data-column" data-label="중립적 의견">
                     <div className="stock-data-value neutral">{stock.neutralOpinions}개</div>
                     <div className="stock-data-change neutral">
                       {stock.neutralChange > 0 ? '+' : ''}{stock.neutralChange}%
                     </div>
                   </div>
-                  <div className="stock-data-column">
-                    <div className="stock-data-value reaction-positive">
-                      {calculateReactionRate(stock.positiveOpinions, stock.negativeOpinions, stock.neutralOpinions)}
-                      {calculateReactionRate(stock.positiveOpinions, stock.negativeOpinions, stock.neutralOpinions) !== 'N/A' && '%'}
-                    </div>
-                    <div className="stock-data-value reaction-negative">
-                      {calculateNegativeReactionRate(stock.positiveOpinions, stock.negativeOpinions, stock.neutralOpinions)}
-                      {calculateNegativeReactionRate(stock.positiveOpinions, stock.negativeOpinions, stock.neutralOpinions) !== 'N/A' && '%'}
+                  <div className="stock-data-column" data-label="반응 비율">
+                    <div className="reaction-rates">
+                      <div className="reaction-rate-item">
+                        <span className="reaction-label">긍정</span>
+                        <span className="stock-data-value reaction-positive">
+                          {calculateReactionRate(stock.positiveOpinions, stock.negativeOpinions, stock.neutralOpinions)}
+                          {calculateReactionRate(stock.positiveOpinions, stock.negativeOpinions, stock.neutralOpinions) !== 'N/A' && '%'}
+                        </span>
+                      </div>
+                      <div className="reaction-rate-item">
+                        <span className="reaction-label">부정</span>
+                        <span className="stock-data-value reaction-negative">
+                          {calculateNegativeReactionRate(stock.positiveOpinions, stock.negativeOpinions, stock.neutralOpinions)}
+                          {calculateNegativeReactionRate(stock.positiveOpinions, stock.negativeOpinions, stock.neutralOpinions) !== 'N/A' && '%'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>

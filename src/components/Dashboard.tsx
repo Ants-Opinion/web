@@ -476,38 +476,46 @@ const Dashboard: React.FC = () => {
                   </div>
                 </div>
                 <div className="stock-right">
-                  <div className="stock-data-column">
+                  <div className="stock-data-column" data-label="종합점수">
                     <div className="stock-data-value score">{stock.totalScore.toFixed(1)}점</div>
                     <div className="stock-data-change score">
                       {stock.scoreChange > 0 ? '+' : ''}{stock.scoreChange.toFixed(1)}%p
                     </div>
                   </div>
-                  <div className="stock-data-column">
+                  <div className="stock-data-column" data-label="긍정적 의견">
                     <div className="stock-data-value positive">{stock.positiveOpinions}개</div>
                     <div className="stock-data-change positive">
                       {stock.positiveChange > 0 ? '+' : ''}{stock.positiveChange}%
                     </div>
                   </div>
-                  <div className="stock-data-column">
+                  <div className="stock-data-column" data-label="부정적 의견">
                     <div className="stock-data-value negative">{stock.negativeOpinions}개</div>
                     <div className="stock-data-change negative">
                       {stock.negativeChange > 0 ? '+' : ''}{stock.negativeChange}%
                     </div>
                   </div>
-                  <div className="stock-data-column">
+                  <div className="stock-data-column" data-label="중립적 의견">
                     <div className="stock-data-value neutral">{stock.neutralOpinions}개</div>
                     <div className="stock-data-change neutral">
                       {stock.neutralChange > 0 ? '+' : ''}{stock.neutralChange}%
                     </div>
                   </div>
-                  <div className="stock-data-column">
-                    <div className="stock-data-value reaction-positive">
-                      {calculateReactionRate(stock.positiveOpinions, stock.negativeOpinions, stock.neutralOpinions)}
-                      {calculateReactionRate(stock.positiveOpinions, stock.negativeOpinions, stock.neutralOpinions) !== 'N/A' && '%'}
-                    </div>
-                    <div className="stock-data-value reaction-negative">
-                      {calculateNegativeReactionRate(stock.positiveOpinions, stock.negativeOpinions, stock.neutralOpinions)}
-                      {calculateNegativeReactionRate(stock.positiveOpinions, stock.negativeOpinions, stock.neutralOpinions) !== 'N/A' && '%'}
+                  <div className="stock-data-column" data-label="반응 비율">
+                    <div className="reaction-rates">
+                      <div className="reaction-rate-item">
+                        <span className="reaction-label">긍정</span>
+                        <span className="stock-data-value reaction-positive">
+                          {calculateReactionRate(stock.positiveOpinions, stock.negativeOpinions, stock.neutralOpinions)}
+                          {calculateReactionRate(stock.positiveOpinions, stock.negativeOpinions, stock.neutralOpinions) !== 'N/A' && '%'}
+                        </span>
+                      </div>
+                      <div className="reaction-rate-item">
+                        <span className="reaction-label">부정</span>
+                        <span className="stock-data-value reaction-negative">
+                          {calculateNegativeReactionRate(stock.positiveOpinions, stock.negativeOpinions, stock.neutralOpinions)}
+                          {calculateNegativeReactionRate(stock.positiveOpinions, stock.negativeOpinions, stock.neutralOpinions) !== 'N/A' && '%'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>

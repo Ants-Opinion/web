@@ -136,7 +136,7 @@ const Favorites: React.FC = () => {
   };
 
   // 즐겨찾기 목록을 사용하여 데이터 로딩
-  const loadDataWithFavorites = async (postData: any, favoritesList: FavoriteSector[]) => {
+  const loadDataWithFavorites = async (postData: { timeFilter: string; targetDate: string }, favoritesList: FavoriteSector[]) => {
     let realStockData: StockItem[] = [];
     
     if (postData.timeFilter === '1일') {

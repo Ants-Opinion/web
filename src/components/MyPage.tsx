@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { updatePassword, sendPasswordResetEmail, updateProfile } from 'firebase/auth';
 import { auth } from '../firebase';
-import { getSentimentCriteria, updateSentimentCriteria, type SentimentCriteria } from '../services/sentimentService';
 import Header from './Header';
 import Footer from './Footer';
 import './MyPage.css';
@@ -11,7 +10,6 @@ const MyPage: React.FC = () => {
   const navigate = useNavigate();
   const user = auth.currentUser;
   
-  const [sentimentCriteria, setSentimentCriteria] = useState<SentimentCriteria | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -22,13 +20,6 @@ const MyPage: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
-  // 감정 분류 기준 상태
-  const [positiveMin, setPositiveMin] = useState(70);
-  const [positiveMax, setPositiveMax] = useState(100);
-  const [negativeMin, setNegativeMin] = useState(0);
-  const [negativeMax, setNegativeMax] = useState(40);
-  const [neutralMin, setNeutralMin] = useState(40);
-  const [neutralMax, setNeutralMax] = useState(70);
 
   useEffect(() => {
     if (!user) {
@@ -39,18 +30,8 @@ const MyPage: React.FC = () => {
     const loadUserData = async () => {
       try {
         setLoading(true);
-        const criteria = await getSentimentCriteria();
-        setSentimentCriteria(criteria);
-        
-        // 폼에 현재 값 설정
-        setPositiveMin(criteria.positive.min);
-        setPositiveMax(criteria.positive.max);
-        setNegativeMin(criteria.negative.min);
-        setNegativeMax(criteria.negative.max);
-        setNeutralMin(criteria.neutral.min);
-        setNeutralMax(criteria.neutral.max);
+        // 사용자 데이터 로딩 로직
       } catch (err) {
-        console.error('사용자 데이터 로딩 오류:', err);
         setError('데이터를 불러오는 중 오류가 발생했습니다.');
       } finally {
         setLoading(false);
@@ -60,9 +41,14 @@ const MyPage: React.FC = () => {
     loadUserData();
   }, [user, navigate]);
 
+  const clearMessages = () => {
+    setMessage('');
+    setError('');
+  };
+
   const handleDisplayNameUpdate = async () => {
     if (!user) return;
-    
+
     try {
       setSaving(true);
       await updateProfile(user, { displayName });
@@ -77,26 +63,26 @@ const MyPage: React.FC = () => {
 
   const handlePasswordUpdate = async () => {
     if (!user) return;
-    
+
     if (newPassword !== confirmPassword) {
       setError('비밀번호가 일치하지 않습니다.');
       return;
     }
-    
+
     if (newPassword.length < 6) {
       setError('비밀번호는 최소 6자 이상이어야 합니다.');
       return;
     }
-    
+
     try {
       setSaving(true);
       await updatePassword(user, newPassword);
       setMessage('비밀번호가 성공적으로 변경되었습니다.');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('비밀번호 업데이트 오류:', err);
-      if (err.code === 'auth/requires-recent-login') {
+      if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'auth/requires-recent-login') {
         setError('보안을 위해 다시 로그인한 후 비밀번호를 변경해주세요.');
       } else {
         setError('비밀번호 변경 중 오류가 발생했습니다.');
@@ -108,7 +94,7 @@ const MyPage: React.FC = () => {
 
   const handlePasswordReset = async () => {
     if (!user?.email) return;
-    
+
     try {
       setSaving(true);
       await sendPasswordResetEmail(auth, user.email);
@@ -120,36 +106,6 @@ const MyPage: React.FC = () => {
       setSaving(false);
     }
   };
-
-  const handleSentimentCriteriaUpdate = async () => {
-    try {
-      setSaving(true);
-      
-      const newCriteria: SentimentCriteria = {
-        positive: { min: positiveMin, max: positiveMax },
-        negative: { min: negativeMin, max: negativeMax },
-        neutral: { min: neutralMin, max: neutralMax }
-      };
-      
-      await updateSentimentCriteria(newCriteria);
-      setSentimentCriteria(newCriteria);
-      setMessage('감정 분류 기준이 성공적으로 업데이트되었습니다.');
-    } catch (err) {
-      console.error('감정 분류 기준 업데이트 오류:', err);
-      setError('감정 분류 기준 업데이트 중 오류가 발생했습니다.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const clearMessages = () => {
-    setMessage('');
-    setError('');
-  };
-
-  if (!user) {
-    return null;
-  }
 
   if (loading) {
     return (
@@ -180,7 +136,7 @@ const MyPage: React.FC = () => {
             <button onClick={clearMessages} className="close-btn">×</button>
           </div>
         )}
-        
+
         {error && (
           <div className="message error">
             {error}
@@ -196,9 +152,9 @@ const MyPage: React.FC = () => {
               <label>이메일</label>
               <input 
                 type="email" 
-                value={user.email || ''} 
-                disabled 
+                value={user?.email || ''} 
                 className="form-input disabled"
+                disabled 
               />
             </div>
             
@@ -226,9 +182,9 @@ const MyPage: React.FC = () => {
               <label>가입일</label>
               <input 
                 type="text" 
-                value={user.metadata.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString('ko-KR') : '알 수 없음'} 
-                disabled 
+                value={user?.metadata.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString('ko-KR') : '알 수 없음'} 
                 className="form-input disabled"
+                disabled 
               />
             </div>
           </section>
@@ -276,114 +232,6 @@ const MyPage: React.FC = () => {
               </button>
             </div>
           </section>
-
-          {/* 감정 분류 기준 섹션 - 주석처리됨 */}
-          {/* <section className="mypage-section">
-            <h2>감정 분류 기준</h2>
-            <p className="section-description">
-              포스트의 점수를 기준으로 긍정/부정/중립을 분류하는 기준을 설정하세요.<br/>
-              • 긍정적: 70점 이상 (70.0, 70.1, ... 100.0)<br/>
-              • 부정적: 40점 미만 (0.0, 39.9, ... 39.9)<br/>
-              • 중립적: 40점 이상 70점 미만 (40.0, 40.1, ... 69.9)
-            </p>
-            
-            <div className="criteria-grid">
-              <div className="criteria-item positive">
-                <h3>긍정적 반응</h3>
-                <div className="range-inputs">
-                  <div className="input-group">
-                    <label>최소값</label>
-                    <input 
-                      type="number" 
-                      value={positiveMin} 
-                      onChange={(e) => setPositiveMin(Number(e.target.value))}
-                      className="form-input small"
-                      min="0" 
-                      max="100"
-                    />
-                  </div>
-                  <span className="range-separator">~</span>
-                  <div className="input-group">
-                    <label>최대값</label>
-                    <input 
-                      type="number" 
-                      value={positiveMax} 
-                      onChange={(e) => setPositiveMax(Number(e.target.value))}
-                      className="form-input small"
-                      min="0" 
-                      max="100"
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="criteria-item negative">
-                <h3>부정적 반응</h3>
-                <div className="range-inputs">
-                  <div className="input-group">
-                    <label>최소값</label>
-                    <input 
-                      type="number" 
-                      value={negativeMin} 
-                      onChange={(e) => setNegativeMin(Number(e.target.value))}
-                      className="form-input small"
-                      min="0" 
-                      max="100"
-                    />
-                  </div>
-                  <span className="range-separator">~</span>
-                  <div className="input-group">
-                    <label>최대값</label>
-                    <input 
-                      type="number" 
-                      value={negativeMax} 
-                      onChange={(e) => setNegativeMax(Number(e.target.value))}
-                      className="form-input small"
-                      min="0" 
-                      max="100"
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="criteria-item neutral">
-                <h3>중립적 반응</h3>
-                <div className="range-inputs">
-                  <div className="input-group">
-                    <label>최소값</label>
-                    <input 
-                      type="number" 
-                      value={neutralMin} 
-                      onChange={(e) => setNeutralMin(Number(e.target.value))}
-                      className="form-input small"
-                      min="0" 
-                      max="100"
-                    />
-                  </div>
-                  <span className="range-separator">~</span>
-                  <div className="input-group">
-                    <label>최대값</label>
-                    <input 
-                      type="number" 
-                      value={neutralMax} 
-                      onChange={(e) => setNeutralMax(Number(e.target.value))}
-                      className="form-input small"
-                      min="0" 
-                      max="100"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <button 
-              onClick={handleSentimentCriteriaUpdate}
-              disabled={saving}
-              className="primary-btn full-width"
-            >
-              {saving ? '저장 중...' : '감정 분류 기준 저장'}
-            </button>
-          </section> */}
         </div>
       </div>
       <Footer />

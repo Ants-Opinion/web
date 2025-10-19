@@ -33,7 +33,7 @@ const Calendar: React.FC<CalendarProps> = ({
 
   // 현재 월의 첫 번째 날과 마지막 날 계산
   const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-  const lastDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+  // const lastDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
   
   // 달력 시작일 (이전 달의 일부 날짜 포함)
   const startDate = new Date(firstDayOfMonth);

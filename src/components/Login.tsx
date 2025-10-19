@@ -105,15 +105,16 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       }
       
       onLoginSuccess(userCredential.user);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setError(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
   };
 
-  const getErrorMessage = (error: any): string => {
-    switch (error.code) {
+  const getErrorMessage = (error: unknown): string => {
+    if (error && typeof error === 'object' && 'code' in error) {
+      switch ((error as { code: string }).code) {
       case 'auth/email-already-in-use':
         return '이미 사용 중인 이메일입니다.';
       case 'auth/weak-password':
@@ -124,9 +125,19 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         return '존재하지 않는 계정입니다.';
       case 'auth/wrong-password':
         return '비밀번호가 틀렸습니다.';
+      case 'auth/popup-closed-by-user':
+        return '로그인 팝업이 닫혔습니다. 팝업 차단을 해제하고 다시 시도해주세요.';
+      case 'auth/popup-blocked':
+        return '팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.';
+      case 'auth/unauthorized-domain':
+        return '이 도메인은 인증되지 않았습니다. 관리자에게 문의하세요.';
+      case 'auth/operation-not-allowed':
+        return 'Google 로그인이 비활성화되어 있습니다.';
       default:
-        return error.message || '오류가 발생했습니다.';
+        return (error as { message?: string }).message || '오류가 발생했습니다.';
+      }
     }
+    return '오류가 발생했습니다.';
   };
 
   const handleGoogleLogin = async () => {
@@ -134,9 +145,19 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setError('');
 
     try {
+      // 팝업 차단 확인
+      const popup = window.open('', '_blank', 'width=500,height=600');
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        setError('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+        setLoading(false);
+        return;
+      }
+      popup.close();
+
       const result = await signInWithPopup(auth, googleProvider);
       onLoginSuccess(result.user);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error('Google 로그인 오류:', error);
       setError(getErrorMessage(error));
     } finally {
       setLoading(false);
@@ -300,6 +321,10 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           </svg>
           Google로 로그인
         </button>
+        
+        <p className="popup-notice">
+          팝업이 차단된 경우 브라우저 설정에서 팝업을 허용해주세요.
+        </p>
 
         <p className="switch-mode">
           {isSignUp ? '이미 계정이 있으신가요?' : '계정이 없으신가요?'}

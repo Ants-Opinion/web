@@ -33,11 +33,11 @@ const SimpleStockTable: React.FC<SimpleStockTableProps> = ({ stocks, onFavoriteT
     return `${sign}${value}%p`;
   };
 
-  const getChangeClass = (value: number) => {
-    if (value > 0) return 'positive';
-    if (value < 0) return 'negative';
-    return 'neutral';
-  };
+  // const getChangeClass = (value: number) => {
+  //   if (value > 0) return 'positive';
+  //   if (value < 0) return 'negative';
+  //   return 'neutral';
+  // };
 
   const handleRowClick = (sectorId: string) => {
     navigate(`/sector/${sectorId}`);

@@ -15,5 +15,10 @@ export default defineConfig({
       ]
     })
   ],
+  server: {
+    host: true,
+    port: 80,
+    allowedHosts: ['www.antopinion.site'],
+  },
   base: '/',
 })

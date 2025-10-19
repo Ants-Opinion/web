@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getAnalytics, isSupported, logEvent } from "firebase/analytics";
-import type { Analytics } from "firebase/analytics";
+// import type { Analytics } from "firebase/analytics";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -30,7 +30,7 @@ export const db = getFirestore(app);
 export const analytics = isSupported().then(yes => yes ? getAnalytics(app) : null);
 
 // Helper function to safely log events
-export const logAnalyticsEvent = async (eventName: string, eventParameters?: Record<string, any>) => {
+export const logAnalyticsEvent = async (eventName: string, eventParameters?: Record<string, unknown>) => {
   try {
     const analyticsInstance = await analytics;
     if (analyticsInstance) {

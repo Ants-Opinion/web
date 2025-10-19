@@ -11,7 +11,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ 
   currentPage = 'home', 
-  showLogout = true, 
+  // showLogout = true, 
   showMypage = true 
 }) => {
   const navigate = useNavigate();

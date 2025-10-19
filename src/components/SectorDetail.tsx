@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { auth } from '../firebase';
-import { onAuthStateChanged, type User } from 'firebase/auth';
-import { getSentimentCriteria, classifySentiment, initializeSentimentCriteria, type SentimentCriteria } from '../services/sentimentService';
-import { getRealStockData } from '../services/realDataService';
+import { onAuthStateChanged } from 'firebase/auth';
+import { getSentimentCriteria, /* classifySentiment, */ initializeSentimentCriteria } from '../services/sentimentService';
+// import { getRealStockData } from '../services/realDataService';
 import Header from './Header';
 import Footer from './Footer';
 import ReactionModal from './ReactionModal';
@@ -60,7 +60,7 @@ const SectorDetail: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [user, setUser] = useState<User | null>(null);
+  // const [user, setUser] = useState<User | null>(null);
   const [data, setData] = useState<SectorDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -68,7 +68,7 @@ const SectorDetail: React.FC = () => {
   const [modalType, setModalType] = useState<'positive' | 'negative' | 'neutral'>('positive');
   const [modalTitle, setModalTitle] = useState('');
   const [modalReactions, setModalReactions] = useState<ReactionItem[]>([]);
-  const [sentimentCriteria, setSentimentCriteria] = useState<SentimentCriteria | null>(null);
+  // const [sentimentCriteria, setSentimentCriteria] = useState<SentimentCriteria | null>(null);
   const [timeFilter, setTimeFilter] = useState<'1일' | '1주'>('1일');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [chartTab, setChartTab] = useState<'대중 반응' | '종합점수'>('대중 반응');
@@ -77,8 +77,8 @@ const SectorDetail: React.FC = () => {
 
   useEffect(() => {
     // 사용자 인증 상태 확인
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe =     onAuthStateChanged(auth, () => {
+      // setUser(user);
     });
 
     return () => unsubscribe();
@@ -122,8 +122,8 @@ const SectorDetail: React.FC = () => {
         // 감정 분류 기준 초기화 및 로드
         console.log('감정 분류 기준 초기화 시작...');
         await initializeSentimentCriteria();
-        const criteria = await getSentimentCriteria();
-        setSentimentCriteria(criteria);
+      const criteria = await getSentimentCriteria();
+      // setSentimentCriteria(criteria);
         console.log('감정 분류 기준 로드 완료:', criteria);
 
         let sectorData;
@@ -457,27 +457,27 @@ const SectorDetail: React.FC = () => {
 
 
   // 데이터를 SectorDetailData 형식으로 변환
-  const convertToSectorDetailData = (sectorData: any): SectorDetailData => {
+  const convertToSectorDetailData = (sectorData: Record<string, unknown>): SectorDetailData => {
     return {
-      sectorId: sectorData.sectorId || 'Unknown',
-      date: sectorData.date || '',
+      sectorId: (sectorData.sectorId as string) || 'Unknown',
+      date: (sectorData.date as string) || '',
       summary: {
-        positive: sectorData.summary?.positive || '요약 없음',
-        negative: sectorData.summary?.negative || '요약 없음',
-        neutral: sectorData.summary?.neutral || '요약 없음',
+        positive: (sectorData.summary as Record<string, unknown>)?.positive as string || '요약 없음',
+        negative: (sectorData.summary as Record<string, unknown>)?.negative as string || '요약 없음',
+        neutral: (sectorData.summary as Record<string, unknown>)?.neutral as string || '요약 없음',
       },
       headline: {
-        positive: sectorData.headline?.positive || '요약 없음',
-        negative: sectorData.headline?.negative || '요약 없음',
-        neutral: sectorData.headline?.neutral || '요약 없음',
+        positive: (sectorData.headline as Record<string, unknown>)?.positive as string || '요약 없음',
+        negative: (sectorData.headline as Record<string, unknown>)?.negative as string || '요약 없음',
+        neutral: (sectorData.headline as Record<string, unknown>)?.neutral as string || '요약 없음',
       },
-      reactions: sectorData.reactions || [],
+      reactions: (sectorData.reactions as ReactionItem[]) || [],
       counts: {
-        positive: sectorData.counts?.positive || 0,
-        negative: sectorData.counts?.negative || 0,
-        neutral: sectorData.counts?.neutral || 0,
+        positive: (sectorData.counts as Record<string, unknown>)?.positive as number || 0,
+        negative: (sectorData.counts as Record<string, unknown>)?.negative as number || 0,
+        neutral: (sectorData.counts as Record<string, unknown>)?.neutral as number || 0,
       },
-      icon: sectorData.icon || undefined, // 섹터별 아이콘 URL
+      icon: (sectorData.icon as string) || undefined, // 섹터별 아이콘 URL
     };
   };
 
@@ -722,10 +722,10 @@ const SectorDetail: React.FC = () => {
           if (value && typeof value === 'object') {
             console.log(`채널 "${key}" 키들:`, Object.keys(value));
             if ('posts' in value) {
-              console.log(`채널 "${key}" posts 구조:`, (value as any).posts);
+              console.log(`채널 "${key}" posts 구조:`, (value as Record<string, unknown>).posts);
             }
             if ('score' in value) {
-              console.log(`채널 "${key}" score:`, (value as any).score);
+              console.log(`채널 "${key}" score:`, (value as Record<string, unknown>).score);
             }
           }
         }
@@ -734,15 +734,15 @@ const SectorDetail: React.FC = () => {
       // Firebase 콘솔에서 보이는 데이터 구조에 맞게 처리
       // 구조: {채널명} 하위에 {posts}와 {score} 필드가 있고, 
       // {posts} 하위에 인티저로 0부터 증가하는 숫자 필드 하위에 {contents}, {time}, {views}가 있음
-      let filteredData: DetailReactionItem[] = [];
+      const filteredData: DetailReactionItem[] = [];
       
       // 모든 채널을 순회하면서 score에 따른 필터링
       for (const [channelName, channelData] of Object.entries(data)) {
         if (channelName === 'icon' || channelName === 'sector') continue; // 메타데이터 제외
         
         if (channelData && typeof channelData === 'object' && 'posts' in channelData && 'score' in channelData) {
-          const channelScore = (channelData as any).score || 0;
-          const posts = (channelData as any).posts;
+          const channelScore = (channelData as Record<string, unknown>).score as number || 0;
+          const posts = (channelData as Record<string, unknown>).posts;
           
           // 채널의 score를 확인하여 필터링
           let shouldIncludeChannel = false;
@@ -766,15 +766,15 @@ const SectorDetail: React.FC = () => {
             for (const [postIndex, postData] of Object.entries(posts)) {
               // postIndex가 숫자인지 확인 (0, 1, 2, ...)
               if (!isNaN(Number(postIndex))) {
-                const post = postData as any;
+                const post = postData as Record<string, unknown>;
                 
                 filteredData.push({
                   id: `${channelName}_${postIndex}`,
                   title: channelName,
-                  content: post.contents || post.content || '',
+                  content: (post.contents as string) || (post.content as string) || '',
                   source: channelName,
-                  time: post.time || new Date().toISOString(),
-                  views: post.views || 0,
+                  time: (post.time as string) || new Date().toISOString(),
+                  views: (post.views as number) || 0,
                   score: channelScore,
                   sector: sectorId!,
                   date: date

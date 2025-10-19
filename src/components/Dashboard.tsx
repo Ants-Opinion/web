@@ -140,15 +140,6 @@ const Dashboard: React.FC = () => {
     initializeDate();
   }, [targetDate, location.state]);
 
-  // 데이터 로딩
-  useEffect(() => {
-    if (targetDate) {
-      loadData();
-    }
-  }, [targetDate, timeFilter]);
-
-
-
   // 데이터 로딩 함수
   const loadData = async () => {
     if (!targetDate) return;
@@ -206,6 +197,13 @@ const Dashboard: React.FC = () => {
   };
 
   // 시간 필터 변경
+  // 데이터 로딩
+  useEffect(() => {
+    if (targetDate) {
+      loadData();
+    }
+  }, [targetDate, timeFilter]);
+
   const handleTimeFilterChange = (filter: TimeFilter) => {
     setTimeFilter(filter);
     setLoading(true);

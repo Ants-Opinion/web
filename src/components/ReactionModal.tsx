@@ -23,7 +23,7 @@ interface ReactionModalProps {
 const ReactionModal: React.FC<ReactionModalProps> = ({ 
   isOpen, 
   onClose, 
-  title, 
+  // title, 
   reactions, 
   type,
   sectorName = '수소',
@@ -95,7 +95,7 @@ const ReactionModal: React.FC<ReactionModalProps> = ({
                   </span>
                 </div>
                 <div className="posts-container">
-                  {channelReactions.map((reaction, index) => (
+                  {channelReactions.map((reaction) => (
                     <div key={reaction.id} className="post-item">
                       <div className="post-meta">
                         <span className="post-date">

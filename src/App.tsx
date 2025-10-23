@@ -63,17 +63,14 @@ function App() {
     )
   }
 
-  if (!user) {
-    return <Login onLoginSuccess={setUser} />
-  }
-
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Dashboard />} />
-        <Route path="/favorites" element={<Favorites />} />
-        <Route path="/sector/:sectorId" element={<SectorDetail />} />
-        <Route path="/mypage" element={<MyPage />} />
+        <Route path="/login" element={<Login onLoginSuccess={setUser} />} />
+        <Route path="/favorites" element={!user ? <Login onLoginSuccess={setUser} /> : <Favorites />} />
+        <Route path="/sector/:sectorId" element={!user ? <Login onLoginSuccess={setUser} /> : <SectorDetail />} />
+        <Route path="/mypage" element={!user ? <Login onLoginSuccess={setUser} /> : <MyPage />} />
       </Routes>
     </Router>
   )

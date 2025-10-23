@@ -15,6 +15,7 @@ const Header: React.FC<HeaderProps> = ({
   showMypage = true 
 }) => {
   const navigate = useNavigate();
+  const user = auth.currentUser;
 
   const handleLogout = async () => {
     try {
@@ -22,6 +23,14 @@ const Header: React.FC<HeaderProps> = ({
       navigate('/');
     } catch (error) {
       console.error('로그아웃 오류:', error);
+    }
+  };
+
+  const handleFavoritesClick = () => {
+    if (!user) {
+      navigate('/login');
+    } else {
+      navigate('/favorites');
     }
   };
 
@@ -47,7 +56,7 @@ const Header: React.FC<HeaderProps> = ({
           </div>
           <div 
             className={`nav-item ${currentPage === 'favorites' ? 'active' : 'inactive'}`}
-            onClick={() => navigate('/favorites')}
+            onClick={handleFavoritesClick}
           >
             즐겨찾기
           </div>
@@ -55,17 +64,26 @@ const Header: React.FC<HeaderProps> = ({
         
         {/* 우측 버튼들 */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          {/* 마이페이지 버튼 */}
-          {showMypage && (
-            <button className="mypage-btn" onClick={() => navigate('/mypage')}>
-              <div className="mypage-text">마이페이지</div>
+          {user ? (
+            <>
+              {/* 마이페이지 버튼 */}
+              {showMypage && (
+                <button className="mypage-btn" onClick={() => navigate('/mypage')}>
+                  <div className="mypage-text">마이페이지</div>
+                </button>
+              )}
+              
+              {/* 로그아웃 버튼 */}
+              <button className="logout-btn" onClick={handleLogout}>
+                <div className="logout-text">로그아웃</div>
+              </button>
+            </>
+          ) : (
+            /* 로그인 버튼 */
+            <button className="logout-btn" onClick={() => navigate('/login')}>
+              <div className="logout-text">로그인</div>
             </button>
           )}
-          
-          {/* 로그아웃 버튼 */}
-          <button className="logout-btn" onClick={handleLogout}>
-            <div className="logout-text">로그아웃</div>
-          </button>
         </div>
       </div>
     </>

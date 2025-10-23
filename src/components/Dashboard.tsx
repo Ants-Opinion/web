@@ -172,7 +172,10 @@ const Dashboard: React.FC = () => {
 
   // 즐겨찾기 추가/제거
   const handleToggleFavorite = async (stockId: string) => {
-    if (!user) return;
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     
     try {
       const stock = stocks.find(s => s.id === stockId);
@@ -205,6 +208,10 @@ const Dashboard: React.FC = () => {
   }, [targetDate, timeFilter]);
 
   const handleTimeFilterChange = (filter: TimeFilter) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     setTimeFilter(filter);
     setLoading(true);
     setError(''); // 에러 상태 초기화
@@ -212,12 +219,20 @@ const Dashboard: React.FC = () => {
 
   // 날짜 변경
   const handlePreviousDay = () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     const currentDate = new Date(targetDate);
     currentDate.setDate(currentDate.getDate() - 1);
     setTargetDate(currentDate.toISOString().split('T')[0]);
   };
 
   const handleNextDay = () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     const currentDate = new Date(targetDate);
     currentDate.setDate(currentDate.getDate() + 1);
     setTargetDate(currentDate.toISOString().split('T')[0]);
@@ -225,6 +240,10 @@ const Dashboard: React.FC = () => {
 
   // 날짜 클릭 핸들러
   const handleDateClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     const rect = event.currentTarget.getBoundingClientRect();
     setCalendarPosition({ x: rect.left, y: rect.bottom + 5 });
     setIsCalendarOpen(true);
@@ -302,6 +321,10 @@ const Dashboard: React.FC = () => {
 
   // 행 클릭 핸들러
   const handleRowClick = (stock: StockItem) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     const params = new URLSearchParams();
     params.set('filter', timeFilter);
     if (targetDate) {
@@ -316,12 +339,6 @@ const Dashboard: React.FC = () => {
   const loadWeekData = async (date: string) => {
     return await getRealStockData(date);
   };
-
-
-
-  if (!user) {
-    return null;
-  }
 
   return (
     <div className="dashboard-container">
@@ -434,7 +451,7 @@ const Dashboard: React.FC = () => {
                 <div className="table-header-column positive">긍정적 의견</div>
                 <div className="table-header-column negative">부정적 의견</div>
                 <div className="table-header-column neutral">중립적 의견</div>
-                <div className="table-header-column neutral">반응 비율</div>
+                <div className="table-header-column reaction">반응 비율</div>
               </div>
             </div>
             

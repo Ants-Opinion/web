@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -23,6 +24,7 @@ interface SignUpFormData {
 }
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [signUpData, setSignUpData] = useState<SignUpFormData>({
@@ -105,6 +107,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       }
       
       onLoginSuccess(userCredential.user);
+      // 로그인/회원가입 성공 시 홈 페이지로 이동
+      navigate('/');
     } catch (error: unknown) {
       setError(getErrorMessage(error));
     } finally {
@@ -156,6 +160,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
       const result = await signInWithPopup(auth, googleProvider);
       onLoginSuccess(result.user);
+      // Google 로그인 성공 시 홈 페이지로 이동
+      navigate('/');
     } catch (error: unknown) {
       console.error('Google 로그인 오류:', error);
       setError(getErrorMessage(error));

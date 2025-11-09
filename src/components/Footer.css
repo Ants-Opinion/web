@@ -16,6 +16,13 @@
 
 .footer-links {
   margin-bottom: 20px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 0;
+  white-space: nowrap;
 }
 
 .footer-link {
@@ -49,34 +56,6 @@
 /* 모바일 반응형 디자인 */
 /* ================================== */
 
-@media (max-width: 768px) {
-  .copyright-footer {
-    padding: 30px 0;
-    margin-top: 60px;
-  }
-  
-  .footer-content {
-    padding: 0 15px;
-  }
-  
-  .footer-links {
-    margin-bottom: 15px;
-  }
-  
-  .footer-link {
-    font-size: 13px;
-  }
-  
-  .footer-separator {
-    margin: 0 8px;
-    font-size: 13px;
-  }
-  
-  .copyright-text {
-    font-size: 11px;
-  }
-}
-
 @media (max-width: 480px) {
   .copyright-footer {
     padding: 20px 0;
@@ -89,6 +68,9 @@
   
   .footer-links {
     margin-bottom: 12px;
+    flex-direction: column;
+    gap: 6px;
+    white-space: normal;
   }
   
   .footer-link {
@@ -96,12 +78,41 @@
   }
   
   .footer-separator {
-    margin: 0 6px;
-    font-size: 12px;
+    display: none !important;
   }
   
   .copyright-text {
     font-size: 10px;
     line-height: 1.4;
+  }
+}
+
+@media (max-width: 400px) {
+  .copyright-footer {
+    padding: 30px 0;
+    margin-top: 60px;
+  }
+  
+  .footer-content {
+    padding: 0 15px;
+  }
+  
+  .footer-links {
+    margin-bottom: 15px;
+    flex-direction: column;
+    gap: 8px;
+    white-space: normal;
+  }
+  
+  .footer-link {
+    font-size: 13px;
+  }
+  
+  .footer-separator {
+    display: none !important;
+  }
+  
+  .copyright-text {
+    font-size: 11px;
   }
 }

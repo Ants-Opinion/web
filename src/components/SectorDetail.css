@@ -621,7 +621,7 @@
 .view-reactions-btn {
   height: 39px;
   padding: 12px 16px;
-  background: #F1F1F1;
+  background: transparent;
   border-radius: 9px;
   border: none;
   cursor: pointer;
@@ -729,7 +729,44 @@
   font-family: Pretendard;
   font-weight: 400;
   line-height: 1.6;
-  margin: 0;
+  margin: 0 0 16px 0;
+}
+
+.reaction-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #E5E5E5;
+}
+
+.view-reactions-link {
+  color: #0B1215;
+  font-size: 14px;
+  font-family: Pretendard;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  cursor: pointer;
+}
+
+.view-reactions-link:hover {
+  color: #107AEB;
+  text-decoration: underline;
+}
+
+.view-reactions-link.active {
+  color: #0B1215;
+}
+
+.view-reactions-link.inactive {
+  color: #676767;
+  cursor: not-allowed;
+}
+
+.view-reactions-link.inactive:hover {
+  color: #676767;
+  text-decoration: none;
 }
 
 /* Reaction Chart Card */

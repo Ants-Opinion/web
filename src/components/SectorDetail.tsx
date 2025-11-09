@@ -71,7 +71,6 @@ const SectorDetail: React.FC = () => {
   // const [sentimentCriteria, setSentimentCriteria] = useState<SentimentCriteria | null>(null);
   const [timeFilter, setTimeFilter] = useState<'1일' | '1주'>('1일');
   const [selectedDate, setSelectedDate] = useState<string>('');
-  const [chartTab, setChartTab] = useState<'대중 반응' | '종합점수'>('대중 반응');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarPosition, setCalendarPosition] = useState({ x: 0, y: 0 });
 
@@ -1149,20 +1148,22 @@ const SectorDetail: React.FC = () => {
             <div className="reaction-section">
               <div className="reaction-header">
                 <h3 className="positive">긍정적 반응</h3>
-                <button className={`view-reactions-btn ${data.counts.positive > 0 ? 'active' : 'inactive'}`} onClick={() => openModal('positive')}>
-                  <span className="btn-icon">
-                    {data.counts.positive > 0 ? (
-                      <img src="/img/Icon_search=active.png" alt="긍정적 반응 있음" />
-                    ) : (
-                      <img src="/img/Icon_search=inactive.png" alt="긍정적 반응 없음" />
-                    )}
-                  </span>
-                  <span className="btn-text">주요 반응 보기</span>
-                </button>
               </div>
               <div className="reaction-content">
                 <h4>{data.headline.positive !== '헤드라인 없음' ? data.headline.positive : '긍정적 반응 없음'}</h4>
                 <p>{data.summary.positive !== '요약 없음' ? data.summary.positive : '긍정적 반응에 대한 요약이 없습니다.'}</p>
+              </div>
+              <div className="reaction-footer">
+                <a 
+                  href="#" 
+                  className={`view-reactions-link ${data.counts.positive > 0 ? 'active' : 'inactive'}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openModal('positive');
+                  }}
+                >
+                  더보기 &gt;
+                </a>
               </div>
             </div>
 
@@ -1170,20 +1171,22 @@ const SectorDetail: React.FC = () => {
             <div className="reaction-section">
               <div className="reaction-header">
                 <h3 className="negative">부정적 반응</h3>
-                <button className={`view-reactions-btn ${data.counts.negative > 0 ? 'active' : 'inactive'}`} onClick={() => openModal('negative')}>
-                  <span className="btn-icon">
-                    {data.counts.negative > 0 ? (
-                      <img src="/img/Icon_search=active.png" alt="부정적 반응 있음" />
-                    ) : (
-                      <img src="/img/Icon_search=inactive.png" alt="부정적 반응 없음" />
-                    )}
-                  </span>
-                  <span className="btn-text">주요 반응 보기</span>
-                </button>
               </div>
               <div className="reaction-content">
                 <h4>{data.headline.negative !== '헤드라인 없음' ? data.headline.negative : '부정적 반응 없음'}</h4>
                 <p>{data.summary.negative !== '요약 없음' ? data.summary.negative : '부정적 반응에 대한 요약이 없습니다.'}</p>
+              </div>
+              <div className="reaction-footer">
+                <a 
+                  href="#" 
+                  className={`view-reactions-link ${data.counts.negative > 0 ? 'active' : 'inactive'}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openModal('negative');
+                  }}
+                >
+                  더보기 &gt;
+                </a>
               </div>
             </div>
 
@@ -1191,66 +1194,26 @@ const SectorDetail: React.FC = () => {
             <div className="reaction-section">
               <div className="reaction-header">
                 <h3 className="neutral">중립적 반응</h3>
-                <button className={`view-reactions-btn ${data.counts.neutral > 0 ? 'active' : 'inactive'}`} onClick={() => openModal('neutral')}>
-                  <span className="btn-icon">
-                    {data.counts.neutral > 0 ? (
-                      <img src="/img/Icon_search=active.png" alt="중립적 반응 있음" />
-                    ) : (
-                      <img src="/img/Icon_search=inactive.png" alt="중립적 반응 없음" />
-                    )}
-                  </span>
-                  <span className="btn-text">주요 반응 보기</span>
-                </button>
               </div>
               <div className="reaction-content">
                 <h4>{data.headline.neutral !== '헤드라인 없음' ? data.headline.neutral : '중립적 반응 없음'}</h4>
                 <p>{data.summary.neutral !== '요약 없음' ? data.summary.neutral : '중립적 반응에 대한 요약이 없습니다.'}</p>
               </div>
+              <div className="reaction-footer">
+                <a 
+                  href="#" 
+                  className={`view-reactions-link ${data.counts.neutral > 0 ? 'active' : 'inactive'}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openModal('neutral');
+                  }}
+                >
+                  더보기 &gt;
+                </a>
+              </div>
             </div>
               </div>
 
-          {/* Reaction History Chart Card */}
-          <div className="reaction-chart-card">
-            <div className="card-header">
-              <h2>반응 기록 차트</h2>
-            </div>
-            <div className="chart-tabs">
-              <button 
-                className={`chart-tab ${chartTab === '대중 반응' ? 'active' : ''}`}
-                onClick={() => setChartTab('대중 반응')}
-              >
-                대중 반응
-              </button>
-                  <button 
-                className={`chart-tab ${chartTab === '종합점수' ? 'active' : ''}`}
-                onClick={() => setChartTab('종합점수')}
-                  >
-                종합점수
-                  </button>
-            </div>
-            <div className="chart-content">
-              <div className="line-chart">
-                <div className="chart-lines">
-                  <div className="chart-line positive"></div>
-                  <div className="chart-line negative"></div>
-                </div>
-                <div className="chart-labels">
-                  <span>5월</span>
-                  <span>6월</span>
-                  <span>7월</span>
-                  <span>8월</span>
-                </div>
-                <div className="chart-data-points">
-                  <div className="data-point positive" style={{ top: '25px', left: '749px' }}>
-                    <span>30개</span>
-                  </div>
-                  <div className="data-point negative" style={{ top: '107px', left: '749px' }}>
-                    <span>13개</span>
-                    </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
           </div>
 

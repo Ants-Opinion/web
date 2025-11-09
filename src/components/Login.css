@@ -210,12 +210,12 @@
 }
 
 .checkmark {
-  height: 18px;
-  width: 18px;
+  height: 20px;
+  width: 20px;
   background-color: #fff;
   border: 2px solid #ddd;
-  border-radius: 3px;
-  margin-right: 8px;
+  border-radius: 4px;
+  margin-right: 10px;
   position: relative;
   transition: all 0.2s ease;
   flex-shrink: 0;
@@ -228,6 +228,7 @@
 .interest-item input:checked ~ .checkmark {
   background-color: #667eea;
   border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
 }
 
 .checkmark:after {
@@ -241,13 +242,14 @@
 }
 
 .interest-item .checkmark:after {
-  left: 5px;
-  top: 2px;
-  width: 4px;
-  height: 8px;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 11px;
   border: solid white;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
+  border-width: 0 3px 3px 0;
+  transform: translate(-50%, -60%) rotate(45deg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 @media (max-width: 480px) {

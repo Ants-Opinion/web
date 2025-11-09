@@ -43,7 +43,8 @@
   color: #0B1215;
 }
 
-.logout-btn {
+/* 공통 버튼 스타일 */
+.header-btn {
   height: 39px;
   padding: 9px 13px;
   background: #EB2F45;
@@ -54,54 +55,138 @@
   font-family: Pretendard;
   font-weight: 400;
   cursor: pointer;
-  z-index: 1001; /* 헤더 배경보다 높은 z-index */
+  z-index: 1001;
   transition: background-color 0.2s ease;
-  display: block !important; /* 강제로 표시 */
-  visibility: visible !important; /* 강제로 보이게 */
-  opacity: 1 !important; /* 완전히 불투명하게 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.logout-btn:hover {
+.header-btn:hover {
   background: #D42A3F;
 }
 
-.logout-text {
+.header-btn-text {
   color: white;
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
+  white-space: nowrap;
 }
 
 .mypage-btn {
-  height: 39px;
-  padding: 9px 13px;
-  background: #F1F1F1;
-  margin-right: 20px;
-  border-radius: 10px;
+  margin-right: 12px;
+}
+
+.logout-btn {
+  /* 로그아웃 버튼도 동일한 스타일 사용 */
+}
+
+.login-btn {
+  /* 로그인 버튼도 동일한 스타일 사용 */
+}
+
+/* 데스크톱 버튼 컨테이너 */
+.header-buttons-desktop {
+  display: flex;
+  align-items: center;
+}
+
+/* 모바일 버튼 컨테이너 */
+.header-buttons-mobile {
+  display: none;
+}
+
+/* 햄버거 메뉴 버튼 */
+.hamburger-btn {
+  background: none;
   border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1002;
+}
+
+.hamburger-icon {
+  width: 24px;
+  height: 18px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.hamburger-icon span {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: #0B1215;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+.hamburger-icon.open span:nth-child(1) {
+  transform: rotate(45deg) translate(6px, 6px);
+}
+
+.hamburger-icon.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger-icon.open span:nth-child(3) {
+  transform: rotate(-45deg) translate(6px, -6px);
+}
+
+/* 모바일 메뉴 오버레이 */
+.mobile-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 1001;
+  display: none;
+}
+
+/* 모바일 메뉴 */
+.mobile-menu {
+  position: fixed;
+  top: 70px;
+  right: 0;
+  background: white;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  min-width: 200px;
+  padding: 16px 0;
+  z-index: 1002;
+  display: none;
+}
+
+.mobile-menu-item {
+  width: 100%;
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  text-align: left;
   color: #0B1215;
-  font-size: 14px;
+  font-size: 16px;
   font-family: Pretendard;
   font-weight: 400;
   cursor: pointer;
-  z-index: 1001; /* 헤더 배경보다 높은 z-index */
   transition: background-color 0.2s ease;
 }
 
-.mypage-btn:hover {
-  background: #E5E5E5;
-}
-
-.mypage-text {
-  color: #0B1215;
+.mobile-menu-item:hover {
+  background: #F8F9FA;
 }
 
 .logo {
   width: 165px;
-  height: 50px;
+  height: auto;
+  aspect-ratio: 363 / 91;
   cursor: pointer;
   z-index: 1001; /* 헤더 배경보다 높은 z-index */
   transition: opacity 0.2s ease;
+  object-fit: contain;
 }
 
 .logo:hover {
@@ -120,7 +205,8 @@
   
   .logo {
     width: 120px;
-    height: 36px;
+    height: auto;
+    aspect-ratio: 363 / 91;
   }
   
   .nav-menu {
@@ -131,23 +217,17 @@
     font-size: 16px;
   }
   
-  .mypage-btn {
-    height: 32px;
-    padding: 6px 10px;
-    margin-right: 10px;
-    font-size: 13px;
+  /* 데스크톱 버튼 숨기기 */
+  .header-buttons-desktop {
+    display: none;
   }
   
-  .logout-btn {
-    height: 32px;
-    padding: 6px 10px;
-    font-size: 13px;
+  /* 모바일 버튼 표시 */
+  .header-buttons-mobile {
+    display: block;
   }
   
-  .mypage-text,
-  .logout-text {
-    font-size: 13px;
-  }
+  /* 모바일 메뉴는 JavaScript로 제어 */
 }
 
 @media (max-width: 480px) {
@@ -158,7 +238,8 @@
   
   .logo {
     width: 100px;
-    height: 30px;
+    height: auto;
+    aspect-ratio: 363 / 91;
   }
   
   .nav-menu {
@@ -169,22 +250,8 @@
     font-size: 14px;
   }
   
-  .mypage-btn {
-    height: 28px;
-    padding: 4px 8px;
-    margin-right: 8px;
-    font-size: 12px;
-  }
-  
-  .logout-btn {
-    height: 28px;
-    padding: 4px 8px;
-    font-size: 12px;
-  }
-  
-  .mypage-text,
-  .logout-text {
-    font-size: 12px;
+  .mobile-menu {
+    top: 60px;
   }
 }
 
@@ -196,7 +263,8 @@
   
   .logo {
     width: 90px;
-    height: 27px;
+    height: auto;
+    aspect-ratio: 363 / 91;
   }
   
   .nav-menu {
@@ -207,21 +275,7 @@
     font-size: 13px;
   }
   
-  .mypage-btn {
-    height: 26px;
-    padding: 3px 6px;
-    margin-right: 6px;
-    font-size: 11px;
-  }
-  
-  .logout-btn {
-    height: 26px;
-    padding: 3px 6px;
-    font-size: 11px;
-  }
-  
-  .mypage-text,
-  .logout-text {
-    font-size: 11px;
+  .mobile-menu {
+    top: 55px;
   }
 }

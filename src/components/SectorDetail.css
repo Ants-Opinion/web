@@ -1166,45 +1166,55 @@
   
   .chart-container {
     flex-direction: column;
-    gap: 20px;
+    gap: 24px;
     align-items: center;
     padding: 15px;
     margin: 15px -15px;
   }
   
   .donut-chart {
-    width: 120px;
-    height: 120px;
+    width: 240px;
+    height: 240px;
   }
   
   .donut-chart svg {
-    max-width: 120px;
-    max-height: 120px;
+    max-width: 240px;
+    max-height: 240px;
   }
   
   .donut-chart-center {
-    font-size: 14px;
+    font-size: 20px;
   }
   
   .chart-legend {
-    gap: 12px;
+    gap: 16px;
+    width: 100%;
+    max-width: 300px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-left: 0;
   }
   
   .legend-item {
     font-size: 12px;
-    gap: 8px;
+    gap: 6px;
+    flex: 0 0 auto;
+    min-width: 80px;
   }
   
   .legend-item .label {
-    min-width: 60px;
+    min-width: 50px;
+    font-size: 11px;
   }
   
   .legend-item .percentage {
-    min-width: 30px;
+    min-width: 35px;
+    font-size: 12px;
   }
   
   .legend-item .count {
-    min-width: 40px;
-    font-size: 11px;
+    min-width: 35px;
+    font-size: 10px;
   }
 }

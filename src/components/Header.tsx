@@ -16,11 +16,13 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const navigate = useNavigate();
   const user = auth.currentUser;
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   const handleLogout = async () => {
     try {
       await auth.signOut();
       navigate('/');
+      setMobileMenuOpen(false);
     } catch (error) {
       console.error('로그아웃 오류:', error);
     }
@@ -32,6 +34,17 @@ const Header: React.FC<HeaderProps> = ({
     } else {
       navigate('/favorites');
     }
+    setMobileMenuOpen(false);
+  };
+
+  const handleMypageClick = () => {
+    navigate('/mypage');
+    setMobileMenuOpen(false);
+  };
+
+  const handleLoginClick = () => {
+    navigate('/login');
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -43,7 +56,8 @@ const Header: React.FC<HeaderProps> = ({
           className="logo" 
           src="/img/mainLogo.png" 
           alt="로고" 
-          onClick={() => navigate('/')} 
+          onClick={() => navigate('/')}
+          style={{ objectFit: 'contain' }}
         />
         
         {/* 네비게이션 메뉴 */}
@@ -62,29 +76,68 @@ const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
         
-        {/* 우측 버튼들 */}
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        {/* 우측 버튼들 - 데스크톱 */}
+        <div className="header-buttons-desktop">
           {user ? (
             <>
               {/* 마이페이지 버튼 */}
               {showMypage && (
-                <button className="mypage-btn" onClick={() => navigate('/mypage')}>
-                  <div className="mypage-text">마이페이지</div>
+                <button className="header-btn mypage-btn" onClick={handleMypageClick}>
+                  <div className="header-btn-text">마이페이지</div>
                 </button>
               )}
               
               {/* 로그아웃 버튼 */}
-              <button className="logout-btn" onClick={handleLogout}>
-                <div className="logout-text">로그아웃</div>
+              <button className="header-btn logout-btn" onClick={handleLogout}>
+                <div className="header-btn-text">로그아웃</div>
               </button>
             </>
           ) : (
             /* 로그인 버튼 */
-            <button className="logout-btn" onClick={() => navigate('/login')}>
-              <div className="logout-text">로그인</div>
+            <button className="header-btn login-btn" onClick={handleLoginClick}>
+              <div className="header-btn-text">로그인</div>
             </button>
           )}
         </div>
+
+        {/* 햄버거 메뉴 버튼 - 모바일 */}
+        <div className="header-buttons-mobile">
+          <button 
+            className="hamburger-btn" 
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="메뉴"
+          >
+            <span className={`hamburger-icon ${mobileMenuOpen ? 'open' : ''}`}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </button>
+        </div>
+
+        {/* 모바일 메뉴 드롭다운 */}
+        {mobileMenuOpen && (
+          <div className="mobile-menu-overlay" onClick={() => setMobileMenuOpen(false)}>
+            <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
+              {user ? (
+                <>
+                  {showMypage && (
+                    <button className="mobile-menu-item" onClick={handleMypageClick}>
+                      마이페이지
+                    </button>
+                  )}
+                  <button className="mobile-menu-item" onClick={handleLogout}>
+                    로그아웃
+                  </button>
+                </>
+              ) : (
+                <button className="mobile-menu-item" onClick={handleLoginClick}>
+                  로그인
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

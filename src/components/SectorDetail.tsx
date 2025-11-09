@@ -1056,7 +1056,7 @@ const SectorDetail: React.FC = () => {
             <div className="card-header">
               <h2>사람들의 반응 비율</h2>
               <p>수소 종목에 대한 사람들의 긍정・부정・중립적 의견 비율이에요.</p>
-              <span className="source">출처: 텔레그램 채널, 김프가</span>
+              <span className="source">출처: 텔레그램 채널</span>
             </div>
             <div className="chart-container">
               <div className="donut-chart">
@@ -1141,7 +1141,7 @@ const SectorDetail: React.FC = () => {
             <div className="card-header">
               <h2>반응 요약</h2>
               <p>수소 종목에 대한 사람들의 반응을 모아봤어요!</p>
-              <span className="source">출처: 텔레그램 채널, 김프가</span>
+              <span className="source">출처: 텔레그램 채널</span>
               </div>
 
             {/* Positive Reactions */}

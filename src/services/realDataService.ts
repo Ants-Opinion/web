@@ -1,5 +1,4 @@
 import { doc, getDoc } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
 import { db } from '../firebase';
 
 // 실제 데이터 타입 정의
@@ -212,17 +211,6 @@ export const getRealStockData = async (targetDate: string): Promise<StockData[]>
   
   try {
     console.log('실제 섹터 데이터 가져오기 시작... (sector_score 기반)', targetDate);
-    
-    // Firebase 인증 상태 확인
-    const auth = getAuth();
-    const user = auth.currentUser;
-    
-    if (!user) {
-      console.error('사용자가 인증되지 않았습니다.');
-      return [];
-    }
-    
-    console.log('인증된 사용자:', user.uid);
     
     // 기준 날짜와 전전일 날짜 계산
     const baseDate = new Date(targetDate);

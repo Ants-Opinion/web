@@ -659,6 +659,26 @@ const SectorDetail: React.FC = () => {
     console.log(`필터 변경: ${filter}`);
   };
 
+  // 날짜 범위 포맷팅 (1주 필터용)
+  const formatDateRange = (dateString: string) => {
+    const endDate = new Date(dateString);
+    const startDate = new Date(endDate);
+    startDate.setDate(endDate.getDate() - 6); // 7일간 (시작일 포함)
+    
+    const startFormatted = startDate.toLocaleDateString('ko-KR', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    const endFormatted = endDate.toLocaleDateString('ko-KR', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
+    return `${startFormatted} ~ ${endFormatted}`;
+  };
+
 
 
   // 캘린더 관련 함수들
@@ -906,7 +926,13 @@ const SectorDetail: React.FC = () => {
             </div>
             <div className="section-details">
               <h1 className="section-title">{sectorId || '섹터'}</h1>
-              <div className="section-date">{selectedDate ? new Date(selectedDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : '오늘'} 기준</div>
+              <div className="section-date">
+                {timeFilter === '1주' && selectedDate
+                  ? `${formatDateRange(selectedDate)} 기준`
+                  : selectedDate
+                  ? `${new Date(selectedDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} 기준`
+                  : '오늘 기준'}
+              </div>
             </div>
           </div>
 
@@ -1006,8 +1032,14 @@ const SectorDetail: React.FC = () => {
             })()}
           </div>
           <div className="section-details">
-            <h1 className="section-name">{data.sectorId}</h1>
-            <p className="section-date">{selectedDate ? new Date(selectedDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : '오늘'} 기준</p>
+            <h1 className="main-title">{data.sectorId}</h1>
+            <p className="section-date">
+              {timeFilter === '1주' && selectedDate
+                ? `${formatDateRange(selectedDate)} 기준`
+                : selectedDate
+                ? `${new Date(selectedDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} 기준`
+                : '오늘 기준'}
+            </p>
           </div>
           <div className="back-button-container">
             <button className="back-button" onClick={handleGoBack}>

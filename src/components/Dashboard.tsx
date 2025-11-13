@@ -270,6 +270,26 @@ const Dashboard: React.FC = () => {
     });
   };
 
+  // 날짜 범위 포맷팅 (1주 필터용)
+  const formatDateRange = (dateString: string) => {
+    const endDate = new Date(dateString);
+    const startDate = new Date(endDate);
+    startDate.setDate(endDate.getDate() - 6); // 7일간 (시작일 포함)
+    
+    const startFormatted = startDate.toLocaleDateString('ko-KR', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    const endFormatted = endDate.toLocaleDateString('ko-KR', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
+    return `${startFormatted} ~ ${endFormatted}`;
+  };
+
   // 섹터 아이콘 경로 가져오기
   const getSectorIconPath = (sector: string) => {
     const iconMappings: { [key: string]: string } = {
@@ -347,7 +367,13 @@ const Dashboard: React.FC = () => {
       {/* 메인 제목 */}
       <div className="main-title-container">
         <div className="main-title">사람들의 반응</div>
-        <div className="subtitle">{new Date(targetDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} 기준</div>
+        <div className="subtitle">
+          {timeFilter === '1주' && targetDate
+            ? `${formatDateRange(targetDate)} 기준`
+            : targetDate
+            ? `${new Date(targetDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} 기준`
+            : '기준'}
+        </div>
       </div>
       
       {/* 날짜 변경 컨트롤 */}

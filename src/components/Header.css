@@ -75,6 +75,10 @@
   margin-right: 12px;
 }
 
+.mypage-btn .header-btn-text {
+  color: #333333;
+}
+
 .logout-btn {
   /* 로그아웃 버튼도 동일한 스타일 사용 */
 }

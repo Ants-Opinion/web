@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebase';
 import { getRealStockData, getLatestDate } from '../services/realDataService';
 import { getUserFavorites, removeFromFavorites, isSectorFavorite, type FavoriteSector } from '../services/favoriteService';
+import { getSectorIconPath } from '../services/sectorIconService';
 import Header from './Header';
 import Footer from './Footer';
 import Calendar from './Calendar';
@@ -39,6 +40,7 @@ const Favorites: React.FC = () => {
   const [calendarPosition, setCalendarPosition] = useState({ x: 0, y: 0 });
   const [isProcessingPostData, setIsProcessingPostData] = useState(false);
   const [hasProcessedPostData, setHasProcessedPostData] = useState(false);
+  const [showInfoTooltip, setShowInfoTooltip] = useState(false);
 
   const [favorites, setFavorites] = useState<FavoriteSector[]>([]);
   const user = auth.currentUser;
@@ -383,51 +385,6 @@ const Favorites: React.FC = () => {
   };
 
   // 섹터 아이콘 경로 생성
-  const getSectorIconPath = (sectorName: string) => {
-    const iconMappings: { [key: string]: string } = {
-      '은행': 'Icon_Sector=Bank.png',
-      '바이오': 'Icon_Sector=Biotech.png',
-      '자동차': 'Icon_Sector=Car.png',
-      '화학': 'Icon_Sector=Chemistry.png',
-      '건설': 'Icon_Sector=Construction.png',
-      '화장품': 'Icon_Sector=Cosmatic.png',
-      '방산': 'Icon_Sector=DefenceIndustry.png',
-      '디스플레이': 'Icon_Sector=Display.png',
-      '유통': 'Icon_Sector=Distribution.png',
-      '전기': 'Icon_Sector=Electricity.png',
-      '엔터테인먼트': 'Icon_Sector=Entertainment.png',
-      '패션': 'Icon_Sector=Fashion.png',
-      '식품': 'Icon_Sector=Food.png',
-      '게임': 'Icon_Sector=Game.png',
-      '수소': 'Icon_Sector=Hydrogen.png',
-      'IT': 'Icon_Sector=IT.png',
-      '임플란트': 'Icon_Sector=Implant.png',
-      '보험': 'Icon_Sector=Insurance.png',
-      '철강': 'Icon_Sector=Iron.png',
-      '핵에너지': 'Icon_Sector=NuclarEnergy.png',
-      '원전': 'Icon_Sector=NuclarEnergy.png',
-      '2차전지': 'Icon_Sector=SecondaryElectricity.png',
-      '반도체': 'Icon_Sector=Semiconductor.png',
-      '스킨케어': 'Icon_Sector=SkinCare.png',
-      '여행': 'Icon_Sector=Travel.png',
-      '관광': 'Icon_Sector=Travel.png',
-      '선박': 'Icon_Sector=Vessle.png',
-      '풍력': 'Icon_Sector=WindEnergy.png',
-      '전선': 'Icon_Sector=Wire.png',
-      '케이블': 'Icon_Sector=Wire.png'
-    };
-
-    for (const [key, value] of Object.entries(iconMappings)) {
-      if (sectorName.toLowerCase().includes(key.toLowerCase()) || 
-          key.toLowerCase().includes(sectorName.toLowerCase())) {
-        const path = `/img/Sector_Icon/${value}`;
-        return path;
-      }
-    }
-
-    return '';
-  };
-
   // 반응률 계산 함수
   const calculateReactionRate = (positive: number, negative: number, neutral: number) => {
     const total = positive + negative + neutral;
@@ -478,6 +435,19 @@ const Favorites: React.FC = () => {
             : targetDate
             ? `${new Date(targetDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} 기준`
             : '기준'}
+          <span 
+            className="info-icon-wrapper"
+            onMouseEnter={() => setShowInfoTooltip(true)}
+            onMouseLeave={() => setShowInfoTooltip(false)}
+            onClick={() => setShowInfoTooltip(!showInfoTooltip)}
+          >
+            <span className="info-icon">ⓘ</span>
+            {showInfoTooltip && (
+              <div className="info-tooltip">
+                Ant Opinion 데이터는 '기준일 -1일' 즉, 어제 데이터를 분석하여 제공합니다.
+              </div>
+            )}
+          </span>
         </div>
       </div>
       

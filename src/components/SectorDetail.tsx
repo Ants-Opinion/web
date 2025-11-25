@@ -5,6 +5,7 @@ import { db } from '../firebase';
 import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getSentimentCriteria, /* classifySentiment, */ initializeSentimentCriteria } from '../services/sentimentService';
+import { getSectorIconPath } from '../services/sectorIconService';
 // import { getRealStockData } from '../services/realDataService';
 import Header from './Header';
 import Footer from './Footer';
@@ -73,6 +74,9 @@ const SectorDetail: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarPosition, setCalendarPosition] = useState({ x: 0, y: 0 });
+  const [showInfoTooltip, setShowInfoTooltip] = useState(false);
+  const [showFormulaTooltip, setShowFormulaTooltip] = useState(false);
+  const [totalScore, setTotalScore] = useState<number>(0);
 
   useEffect(() => {
     // 사용자 인증 상태 확인
@@ -139,6 +143,12 @@ const SectorDetail: React.FC = () => {
 
         if (sectorData) {
           setData(sectorData);
+          
+          // 종합점수 가져오기
+          const score = await getTotalScoreForSector(sectorId, selectedDate || new Date().toISOString().split('T')[0]);
+          setTotalScore(score);
+          console.log('종합점수:', score);
+          
           console.log('=== 섹터 데이터 로딩 완료 ===');
           console.log('데이터 구조:', {
             sectorId: sectorData.sectorId,
@@ -507,146 +517,32 @@ const SectorDetail: React.FC = () => {
     }
   };
 
-  // 섹터명을 아이콘 파일명으로 매핑하는 함수
-  const getSectorIconPath = (sectorName: string): string => {
-    console.log('getSectorIconPath 호출됨, 섹터명:', sectorName);
-    
-    const sectorIconMap: { [key: string]: string } = {
-      // 한글 섹터명
-      'IT': 'Icon_Sector=IT.png',
-      '반도체': 'Icon_Sector=Semiconductor.png',
-      '게임': 'Icon_Sector=Game.png',
-      '화장품': 'Icon_Sector=Cosmatic.png',
-      '스킨케어': 'Icon_Sector=SkinCare.png',
-      '피부미용': 'Icon_Sector=SkinCare.png',
-      '자동차': 'Icon_Sector=Car.png',
-      '건설': 'Icon_Sector=Construction.png',
-      '화학': 'Icon_Sector=Chemistry.png',
-      '철강': 'Icon_Sector=Iron.png',
-      '전기': 'Icon_Sector=Electricity.png',
-      '2차전기': 'Icon_Sector=SecondaryElectricity.png',
-      '이차전지': 'Icon_Sector=SecondaryElectricity.png',
-      '풍력에너지': 'Icon_Sector=WindEnergy.png',
-      '수소': 'Icon_Sector=Hydrogen.png',
-      '원자력에너지': 'Icon_Sector=NuclarEnergy.png',
-      '원전': 'Icon_Sector=NuclarEnergy.png',
-      '방산산업': 'Icon_Sector=DefenceIndustry.png',
-      '은행': 'Icon_Sector=Bank.png',
-      '보험': 'Icon_Sector=Insurance.png',
-      '유통': 'Icon_Sector=Distribution.png',
-      '식품': 'Icon_Sector=Food.png',
-      '음식료': 'Icon_Sector=Food.png',
-      '패션': 'Icon_Sector=Fashion.png',
-      '엔터테인먼트': 'Icon_Sector=Entertainment.png',
-      '여행': 'Icon_Sector=Travel.png',
-      '선박': 'Icon_Sector=Vessle.png',
-      '조선': 'Icon_Sector=Vessle.png',
-      '디스플레이': 'Icon_Sector=Display.png',
-      '바이오테크': 'Icon_Sector=Biotech.png',
-      '임플란트': 'Icon_Sector=Implant.png',
-      '전선': 'Icon_Sector=Wire.png',
+  // 섹터의 종합점수 가져오기 (sector_score 컬렉션의 1번 필드)
+  const getTotalScoreForSector = async (sectorId: string, date: string): Promise<number> => {
+    try {
+      console.log(`종합점수 가져오기: ${sectorId}, ${date}`);
       
-      // 영문 섹터명
-      'Bank': 'Icon_Sector=Bank.png',
-      'Biotech': 'Icon_Sector=Biotech.png',
-      'Car': 'Icon_Sector=Car.png',
-      'Chemistry': 'Icon_Sector=Chemistry.png',
-      'Construction': 'Icon_Sector=Construction.png',
-      'Cosmatic': 'Icon_Sector=Cosmatic.png',
-      'DefenceIndustry': 'Icon_Sector=DefenceIndustry.png',
-      'Display': 'Icon_Sector=Display.png',
-      'Distribution': 'Icon_Sector=Distribution.png',
-      'Electricity': 'Icon_Sector=Electricity.png',
-      'SecondaryElectricity': 'Icon_Sector=SecondaryElectricity.png',
-      'Entertainment': 'Icon_Sector=Entertainment.png',
-      'Fashion': 'Icon_Sector=Fashion.png',
-      'Food': 'Icon_Sector=Food.png',
-      'Game': 'Icon_Sector=Game.png',
-      'Hydrogen': 'Icon_Sector=Hydrogen.png',
-      'Implant': 'Icon_Sector=Implant.png',
-      'Insurance': 'Icon_Sector=Insurance.png',
-      'Iron': 'Icon_Sector=Iron.png',
-      'NuclarEnergy': 'Icon_Sector=NuclarEnergy.png',
-      'Semiconductor': 'Icon_Sector=Semiconductor.png',
-      'SkinCare': 'Icon_Sector=SkinCare.png',
-      'Travel': 'Icon_Sector=Travel.png',
-      'Vessle': 'Icon_Sector=Vessle.png',
-      'WindEnergy': 'Icon_Sector=WindEnergy.png',
-      'Wire': 'Icon_Sector=Wire.png'
-    };
-
-    // 정확한 매칭 시도
-    if (sectorIconMap[sectorName]) {
-      const path = `/img/Sector_Icon/${sectorIconMap[sectorName]}`;
-      console.log('정확한 매칭 성공:', sectorName, '->', path);
-      return path;
-    }
-
-    // 부분 매칭 시도 (한글 섹터명)
-    for (const [key, value] of Object.entries(sectorIconMap)) {
-      if (sectorName.toLowerCase().includes(key.toLowerCase()) || 
-          key.toLowerCase().includes(sectorName.toLowerCase())) {
-        const path = `/img/Sector_Icon/${value}`;
-        console.log('부분 매칭 성공:', sectorName, '->', key, '->', path);
-        return path;
+      // sector_score/{date} 문서에서 해당 섹터의 1번 필드 값 가져오기
+      const scoreDocRef = doc(db, 'sector_score', date);
+      const scoreDocSnap = await getDoc(scoreDocRef);
+      
+      if (scoreDocSnap.exists()) {
+        const scoreData = scoreDocSnap.data();
+        const sectorData = scoreData[sectorId];
+        
+        if (sectorData && sectorData['1'] !== undefined) {
+          const score = sectorData['1'];
+          console.log(`섹터 ${sectorId}의 종합점수: ${score}`);
+          return typeof score === 'number' ? score : 0;
+        }
       }
+      
+      console.log(`섹터 ${sectorId}의 종합점수를 찾을 수 없습니다.`);
+      return 0;
+    } catch (error) {
+      console.error('종합점수 가져오기 오류:', error);
+      return 0;
     }
-
-    // 추가 매칭 시도 (더 세밀한 매칭)
-    const additionalMatches: { [key: string]: string } = {
-      '피부': 'Icon_Sector=SkinCare.png',
-      '미용': 'Icon_Sector=SkinCare.png',
-      '전지': 'Icon_Sector=SecondaryElectricity.png',
-      '배터리': 'Icon_Sector=SecondaryElectricity.png',
-      '에너지': 'Icon_Sector=Electricity.png',
-      '전력': 'Icon_Sector=Electricity.png',
-      '핵': 'Icon_Sector=NuclarEnergy.png',
-      '원자력': 'Icon_Sector=NuclarEnergy.png',
-      '반도체': 'Icon_Sector=Semiconductor.png',
-      '칩': 'Icon_Sector=Semiconductor.png',
-      '게임': 'Icon_Sector=Game.png',
-      '엔터테인먼트': 'Icon_Sector=Entertainment.png',
-      '미디어': 'Icon_Sector=Entertainment.png',
-      '화장품': 'Icon_Sector=Cosmatic.png',
-      '뷰티': 'Icon_Sector=Cosmatic.png',
-      '자동차': 'Icon_Sector=Car.png',
-      '차량': 'Icon_Sector=Car.png',
-      '건설': 'Icon_Sector=Construction.png',
-      '건축': 'Icon_Sector=Construction.png',
-      '화학': 'Icon_Sector=Chemistry.png',
-      '철강': 'Icon_Sector=Iron.png',
-      '금속': 'Icon_Sector=Iron.png',
-      '선박': 'Icon_Sector=Vessle.png',
-      '조선': 'Icon_Sector=Vessle.png',
-      '운송': 'Icon_Sector=Distribution.png',
-      '유통': 'Icon_Sector=Distribution.png',
-      '식품': 'Icon_Sector=Food.png',
-      '음식': 'Icon_Sector=Food.png',
-      '패션': 'Icon_Sector=Fashion.png',
-      '의류': 'Icon_Sector=Fashion.png',
-      '여행': 'Icon_Sector=Travel.png',
-      '관광': 'Icon_Sector=Travel.png',
-      '디스플레이': 'Icon_Sector=Display.png',
-      '화면': 'Icon_Sector=Display.png',
-      '바이오': 'Icon_Sector=Biotech.png',
-      '생명': 'Icon_Sector=Biotech.png',
-      '임플란트': 'Icon_Sector=Implant.png',
-      '의료': 'Icon_Sector=Implant.png',
-      '전선': 'Icon_Sector=Wire.png',
-      '케이블': 'Icon_Sector=Wire.png'
-    };
-
-    for (const [key, value] of Object.entries(additionalMatches)) {
-      if (sectorName.toLowerCase().includes(key.toLowerCase()) || 
-          key.toLowerCase().includes(sectorName.toLowerCase())) {
-        const path = `/img/Sector_Icon/${value}`;
-        console.log('추가 매칭 성공:', sectorName, '->', key, '->', path);
-        return path;
-      }
-    }
-
-    console.log('매칭 실패, 기본 아이콘 사용:', sectorName);
-    return '';
   };
 
   const handleFilterChange = (filter: '1일' | '1주') => {
@@ -1039,6 +935,19 @@ const SectorDetail: React.FC = () => {
                 : selectedDate
                 ? `${new Date(selectedDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} 기준`
                 : '오늘 기준'}
+              <span 
+                className="info-icon-wrapper"
+                onMouseEnter={() => setShowInfoTooltip(true)}
+                onMouseLeave={() => setShowInfoTooltip(false)}
+                onClick={() => setShowInfoTooltip(!showInfoTooltip)}
+              >
+                <span className="info-icon">ⓘ</span>
+                {showInfoTooltip && (
+                  <span className="info-tooltip">
+                    Ant Opinion 데이터는 '기준일 -1일' 즉, 어제 데이터를 분석하여 제공합니다.
+                  </span>
+                )}
+              </span>
             </p>
           </div>
           <div className="back-button-container">
@@ -1083,11 +992,42 @@ const SectorDetail: React.FC = () => {
 
         {/* Content Cards */}
         <div className="content-cards">
+          {/* People's Reaction Score Card */}
+          <div className="reaction-score-card">
+            <div className="card-header">
+              <h2>사람들의 반응 종합점수</h2>
+            </div>
+            <div className="score-card-content">
+              <div className="score-card-left">
+                <p>{data.sectorId} 종목에 대한 사람들의 의견을 AI가 종합점수로 표현 하였어요.</p>
+                <span className="source">
+                  산식: 전체 분야에 대한 의견 비율 대비 해당 분야의 긍정 의견의 비율
+                  <span 
+                    className="formula-icon-wrapper"
+                    onMouseEnter={() => setShowFormulaTooltip(true)}
+                    onMouseLeave={() => setShowFormulaTooltip(false)}
+                    onClick={() => setShowFormulaTooltip(!showFormulaTooltip)}
+                  >
+                    <span className="formula-icon">ⓘ</span>
+                    {showFormulaTooltip && (
+                      <span className="formula-tooltip">
+                        추후 공개 예정
+                      </span>
+                    )}
+                  </span>
+                </span>
+              </div>
+              <div className="score-card-right">
+                <span className="total-score">{totalScore.toFixed(1)}<span className="score-unit">점</span></span>
+              </div>
+            </div>
+          </div>
+
           {/* People's Reaction Ratio Card */}
           <div className="reaction-ratio-card">
             <div className="card-header">
               <h2>사람들의 반응 비율</h2>
-              <p>수소 종목에 대한 사람들의 긍정・부정・중립적 의견 비율이에요.</p>
+              <p>{data.sectorId} 종목에 대한 사람들의 긍정・부정・중립적 의견 비율이에요.</p>
               <span className="source">출처: 텔레그램 채널</span>
             </div>
             <div className="chart-container">
@@ -1100,7 +1040,7 @@ const SectorDetail: React.FC = () => {
                     r="84"
                     fill="none"
                     stroke="#F0F0F0"
-                    strokeWidth="18"
+                    strokeWidth="27"
                   />
                   
                   {/* 긍정적 반응 (빨간색) */}
@@ -1110,7 +1050,7 @@ const SectorDetail: React.FC = () => {
                     r="84"
                     fill="none"
                     stroke="#EB2F45"
-                    strokeWidth="18"
+                    strokeWidth="27"
                     strokeDasharray={`${(positivePercentage / 100) * 528} 528`}
                     transform="rotate(-90 140 140)"
                     strokeLinecap="round"
@@ -1123,7 +1063,7 @@ const SectorDetail: React.FC = () => {
                     r="84"
                     fill="none"
                     stroke="#107AEB"
-                    strokeWidth="18"
+                    strokeWidth="27"
                     strokeDasharray={`${(negativePercentage / 100) * 528} 528`}
                     transform={`rotate(${-90 + (positivePercentage * 3.6)} 140 140)`}
                     strokeLinecap="round"
@@ -1136,7 +1076,7 @@ const SectorDetail: React.FC = () => {
                     r="84"
                     fill="none"
                     stroke="#969696"
-                    strokeWidth="18"
+                    strokeWidth="27"
                     strokeDasharray={`${(neutralPercentage / 100) * 528} 528`}
                     transform={`rotate(${-90 + (positivePercentage * 3.6) + (negativePercentage * 3.6)} 140 140)`}
                     strokeLinecap="round"
@@ -1144,7 +1084,7 @@ const SectorDetail: React.FC = () => {
                   
                   {/* 중앙 텍스트 */}
                   <text x="140" y="140" textAnchor="middle" dy=".3em" className="donut-chart-center">
-                    {totalReactions}
+                    {totalReactions}개
                   </text>
                 </svg>
               </div>

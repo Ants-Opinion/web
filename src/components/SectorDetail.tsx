@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -76,6 +76,11 @@ const SectorDetail: React.FC = () => {
   const [calendarPosition, setCalendarPosition] = useState({ x: 0, y: 0 });
   const [showInfoTooltip, setShowInfoTooltip] = useState(false);
   const [showFormulaTooltip, setShowFormulaTooltip] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const infoTooltipRef = useRef<HTMLSpanElement>(null);
+  const infoTooltipWrapperRef = useRef<HTMLSpanElement>(null);
+  const formulaTooltipRef = useRef<HTMLSpanElement>(null);
+  const formulaTooltipWrapperRef = useRef<HTMLSpanElement>(null);
   const [totalScore, setTotalScore] = useState<number>(0);
 
   useEffect(() => {
@@ -86,6 +91,81 @@ const SectorDetail: React.FC = () => {
 
     return () => unsubscribe();
   }, []);
+
+  // 모바일 디바이스 감지
+  useEffect(() => {
+    const checkMobile = () => {
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        (window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+      setIsMobile(isMobileDevice);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Info 툴팁 위치 조정
+  useEffect(() => {
+    if (showInfoTooltip && infoTooltipRef.current && infoTooltipWrapperRef.current) {
+      const tooltip = infoTooltipRef.current;
+      const tooltipRect = tooltip.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      // 툴팁이 화면 오른쪽을 벗어나는 경우
+      if (tooltipRect.right > viewportWidth - 20) {
+        const overflow = tooltipRect.right - viewportWidth + 20;
+        tooltip.style.left = `calc(50% - ${overflow}px)`;
+        tooltip.style.transform = 'translateX(-50%)';
+      }
+      
+      // 툴팁이 화면 왼쪽을 벗어나는 경우
+      if (tooltipRect.left < 20) {
+        const overflow = 20 - tooltipRect.left;
+        tooltip.style.left = `calc(50% + ${overflow}px)`;
+        tooltip.style.transform = 'translateX(-50%)';
+      }
+      
+      // 툴팁이 화면 아래를 벗어나는 경우 (위로 표시)
+      if (tooltipRect.bottom > viewportHeight - 20) {
+        tooltip.style.top = 'auto';
+        tooltip.style.bottom = 'calc(100% + 8px)';
+        tooltip.style.transform = 'translateX(-50%)';
+      }
+    }
+  }, [showInfoTooltip]);
+
+  // Formula 툴팁 위치 조정
+  useEffect(() => {
+    if (showFormulaTooltip && formulaTooltipRef.current && formulaTooltipWrapperRef.current) {
+      const tooltip = formulaTooltipRef.current;
+      const tooltipRect = tooltip.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      // 툴팁이 화면 오른쪽을 벗어나는 경우
+      if (tooltipRect.right > viewportWidth - 20) {
+        const overflow = tooltipRect.right - viewportWidth + 20;
+        tooltip.style.left = `calc(50% - ${overflow}px)`;
+        tooltip.style.transform = 'translateX(-50%)';
+      }
+      
+      // 툴팁이 화면 왼쪽을 벗어나는 경우
+      if (tooltipRect.left < 20) {
+        const overflow = 20 - tooltipRect.left;
+        tooltip.style.left = `calc(50% + ${overflow}px)`;
+        tooltip.style.transform = 'translateX(-50%)';
+      }
+      
+      // 툴팁이 화면 아래를 벗어나는 경우 (위로 표시)
+      if (tooltipRect.bottom > viewportHeight - 20) {
+        tooltip.style.top = 'auto';
+        tooltip.style.bottom = 'calc(100% + 8px)';
+        tooltip.style.transform = 'translateX(-50%)';
+      }
+    }
+  }, [showFormulaTooltip]);
 
   useEffect(() => {
     // URL 파라미터에서 timeFilter와 date 읽어오기
@@ -652,12 +732,21 @@ const SectorDetail: React.FC = () => {
       const filteredData: DetailReactionItem[] = [];
       
       // 모든 채널을 순회하면서 score에 따른 필터링
+      console.log(`=== ${type} 반응 필터링 시작 ===`);
+      let totalChannels = 0;
+      let channelsWithPosts = 0;
+      let channelsMatchingCriteria = 0;
+      
       for (const [channelName, channelData] of Object.entries(data)) {
         if (channelName === 'icon' || channelName === 'sector') continue; // 메타데이터 제외
+        
+        totalChannels++;
         
         if (channelData && typeof channelData === 'object' && 'posts' in channelData && 'score' in channelData) {
           const channelScore = (channelData as Record<string, unknown>).score as number || 0;
           const posts = (channelData as Record<string, unknown>).posts;
+          
+          console.log(`채널 "${channelName}": score=${channelScore}, posts 존재=${!!posts}`);
           
           // 채널의 score를 확인하여 필터링
           let shouldIncludeChannel = false;
@@ -676,29 +765,56 @@ const SectorDetail: React.FC = () => {
               shouldIncludeChannel = false;
           }
           
-          if (shouldIncludeChannel && posts && typeof posts === 'object') {
-            // posts 하위의 숫자 필드들을 순회 (0, 1, 2, ...)
-            for (const [postIndex, postData] of Object.entries(posts)) {
-              // postIndex가 숫자인지 확인 (0, 1, 2, ...)
-              if (!isNaN(Number(postIndex))) {
-                const post = postData as Record<string, unknown>;
-                
-                filteredData.push({
-                  id: `${channelName}_${postIndex}`,
-                  title: channelName,
-                  content: (post.contents as string) || (post.content as string) || '',
-                  source: channelName,
-                  time: (post.time as string) || new Date().toISOString(),
-                  views: (post.views as number) || 0,
-                  score: channelScore,
-                  sector: sectorId!,
-                  date: date
-                });
+          console.log(`  채널 "${channelName}": 조건 만족=${shouldIncludeChannel} (${type} 기준: ${type === 'positive' ? 'score >= 70' : type === 'negative' ? 'score < 40' : '40 <= score < 70'})`);
+          
+          if (posts && typeof posts === 'object') {
+            channelsWithPosts++;
+            const postKeys = Object.keys(posts);
+            console.log(`  채널 "${channelName}": posts 키 개수=${postKeys.length}, 키들=${postKeys.join(', ')}`);
+            
+            if (shouldIncludeChannel) {
+              channelsMatchingCriteria++;
+              let postCount = 0;
+              
+              // posts 하위의 숫자 필드들을 순회 (0, 1, 2, ...)
+              for (const [postIndex, postData] of Object.entries(posts)) {
+                // postIndex가 숫자인지 확인 (0, 1, 2, ...)
+                if (!isNaN(Number(postIndex))) {
+                  const post = postData as Record<string, unknown>;
+                  const content = (post.contents as string) || (post.content as string) || '';
+                  
+                  if (content) {
+                    postCount++;
+                    filteredData.push({
+                      id: `${channelName}_${postIndex}`,
+                      title: channelName,
+                      content: content,
+                      source: channelName,
+                      time: (post.time as string) || new Date().toISOString(),
+                      views: (post.views as number) || 0,
+                      score: channelScore,
+                      sector: sectorId!,
+                      date: date
+                    });
+                  }
+                }
               }
+              
+              console.log(`  채널 "${channelName}": 추가된 포스트 수=${postCount}`);
             }
+          } else {
+            console.log(`  채널 "${channelName}": posts가 없거나 객체가 아님`);
           }
+        } else {
+          console.log(`채널 "${channelName}": posts 또는 score 필드가 없음`);
         }
       }
+      
+      console.log(`=== ${type} 반응 필터링 결과 ===`);
+      console.log(`전체 채널 수: ${totalChannels}`);
+      console.log(`posts가 있는 채널 수: ${channelsWithPosts}`);
+      console.log(`조건을 만족하는 채널 수: ${channelsMatchingCriteria}`);
+      console.log(`최종 필터링된 포스트 수: ${filteredData.length}`);
       
       console.log(`필터링된 ${type} 반응 데이터:`, filteredData);
       console.log(`총 ${filteredData.length}개의 ${type} 반응을 찾았습니다.`);
@@ -936,14 +1052,18 @@ const SectorDetail: React.FC = () => {
                 ? `${new Date(selectedDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} 기준`
                 : '오늘 기준'}
               <span 
+                ref={infoTooltipWrapperRef}
                 className="info-icon-wrapper"
-                onMouseEnter={() => setShowInfoTooltip(true)}
-                onMouseLeave={() => setShowInfoTooltip(false)}
-                onClick={() => setShowInfoTooltip(!showInfoTooltip)}
+                onMouseEnter={!isMobile ? () => setShowInfoTooltip(true) : undefined}
+                onMouseLeave={!isMobile ? () => setShowInfoTooltip(false) : undefined}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowInfoTooltip(!showInfoTooltip);
+                }}
               >
                 <span className="info-icon">ⓘ</span>
                 {showInfoTooltip && (
-                  <span className="info-tooltip">
+                  <span ref={infoTooltipRef} className="info-tooltip">
                     Ant Opinion 데이터는 '기준일 -1일' 즉, 어제 데이터를 분석하여 제공합니다.
                   </span>
                 )}
@@ -1003,14 +1123,18 @@ const SectorDetail: React.FC = () => {
                 <span className="source">
                   산식: 전체 분야에 대한 의견 비율 대비 해당 분야의 긍정 의견의 비율
                   <span 
+                    ref={formulaTooltipWrapperRef}
                     className="formula-icon-wrapper"
-                    onMouseEnter={() => setShowFormulaTooltip(true)}
-                    onMouseLeave={() => setShowFormulaTooltip(false)}
-                    onClick={() => setShowFormulaTooltip(!showFormulaTooltip)}
+                    onMouseEnter={!isMobile ? () => setShowFormulaTooltip(true) : undefined}
+                    onMouseLeave={!isMobile ? () => setShowFormulaTooltip(false) : undefined}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowFormulaTooltip(!showFormulaTooltip);
+                    }}
                   >
                     <span className="formula-icon">ⓘ</span>
                     {showFormulaTooltip && (
-                      <span className="formula-tooltip">
+                      <span ref={formulaTooltipRef} className="formula-tooltip">
                         추후 공개 예정
                       </span>
                     )}

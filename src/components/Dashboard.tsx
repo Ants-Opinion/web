@@ -39,6 +39,9 @@ const Dashboard: React.FC = () => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarPosition, setCalendarPosition] = useState({ x: 0, y: 0 });
   const [showInfoTooltip, setShowInfoTooltip] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const tooltipWrapperRef = useRef<HTMLSpanElement>(null);
 
   const user = auth.currentUser;
 
@@ -47,6 +50,52 @@ const Dashboard: React.FC = () => {
   
   // 디버깅을 위한 ref 추가
   const stocksRef = useRef<StockItem[]>([]);
+
+  // 모바일 디바이스 감지
+  useEffect(() => {
+    const checkMobile = () => {
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        (window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+      setIsMobile(isMobileDevice);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // 툴팁 위치 조정
+  useEffect(() => {
+    if (showInfoTooltip && tooltipRef.current && tooltipWrapperRef.current) {
+      const tooltip = tooltipRef.current;
+      const wrapper = tooltipWrapperRef.current;
+      const wrapperRect = wrapper.getBoundingClientRect();
+      const tooltipRect = tooltip.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      // 툴팁이 화면 오른쪽을 벗어나는 경우
+      if (tooltipRect.right > viewportWidth - 20) {
+        const overflow = tooltipRect.right - viewportWidth + 20;
+        tooltip.style.left = `calc(50% - ${overflow}px)`;
+        tooltip.style.transform = 'translateX(-50%)';
+      }
+      
+      // 툴팁이 화면 왼쪽을 벗어나는 경우
+      if (tooltipRect.left < 20) {
+        const overflow = 20 - tooltipRect.left;
+        tooltip.style.left = `calc(50% + ${overflow}px)`;
+        tooltip.style.transform = 'translateX(-50%)';
+      }
+      
+      // 툴팁이 화면 아래를 벗어나는 경우 (위로 표시)
+      if (tooltipRect.bottom > viewportHeight - 20) {
+        tooltip.style.top = 'auto';
+        tooltip.style.bottom = 'calc(100% + 8px)';
+        tooltip.style.transform = 'translateX(-50%)';
+      }
+    }
+  }, [showInfoTooltip]);
 
   // POST 데이터에서 초기값 읽어오기
   useEffect(() => {
@@ -342,14 +391,18 @@ const Dashboard: React.FC = () => {
             ? `${new Date(targetDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} 기준`
             : '기준'}
           <span 
+            ref={tooltipWrapperRef}
             className="info-icon-wrapper"
-            onMouseEnter={() => setShowInfoTooltip(true)}
-            onMouseLeave={() => setShowInfoTooltip(false)}
-            onClick={() => setShowInfoTooltip(!showInfoTooltip)}
+            onMouseEnter={!isMobile ? () => setShowInfoTooltip(true) : undefined}
+            onMouseLeave={!isMobile ? () => setShowInfoTooltip(false) : undefined}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowInfoTooltip(!showInfoTooltip);
+            }}
           >
             <span className="info-icon">ⓘ</span>
             {showInfoTooltip && (
-              <div className="info-tooltip">
+              <div ref={tooltipRef} className="info-tooltip">
                 Ant Opinion 데이터는 '기준일 -1일' 즉, 어제 데이터를 분석하여 제공합니다.
               </div>
             )}

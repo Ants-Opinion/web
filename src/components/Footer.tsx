@@ -10,7 +10,7 @@ const Footer: React.FC = () => {
           <span className="footer-separator">|</span>
           <a href="/privacy.html" className="footer-link">개인정보처리방침</a>
           <span className="footer-separator">|</span>
-          <a href="/contact" className="footer-link">문의</a>
+          <a href="mailto:antopinion.official@gmail.com" className="footer-link">문의</a>
         </div>
         <div className="copyright-text">
           © 2025 AntOpinion. All rights reserved. | Since 2025 | Made with ❤️ for better investment decisions

@@ -68,8 +68,6 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     if (showInfoTooltip && tooltipRef.current && tooltipWrapperRef.current) {
       const tooltip = tooltipRef.current;
-      const wrapper = tooltipWrapperRef.current;
-      const wrapperRect = wrapper.getBoundingClientRect();
       const tooltipRect = tooltip.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;

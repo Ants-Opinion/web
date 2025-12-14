@@ -1,0 +1,27 @@
+{
+  "name": "AntOpinion - AI 기반 주식 여론 분석 서비스",
+  "short_name": "AntOpinion",
+  "description": "AI 기반 주식 여론 분석 서비스. 실시간 주식 동향, 섹터별 의견, 투자심리 분석",
+  "icons": [
+    {
+      "src": "/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff"
+}
+

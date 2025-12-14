@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+User-agent: Yeti
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+Sitemap: https://www.antopinion.site/sitemap.xml
+

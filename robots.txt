@@ -1,11 +1,25 @@
+# 모든 검색로봇 허용
 User-agent: *
 Allow: /
+Allow: /favicon.ico
+Allow: /favicon.png
+Allow: /favicon-16x16.png
+Allow: /favicon-32x32.png
+Allow: /apple-touch-icon.png
+Allow: /img/
+Allow: /assets/
 
+# 네이버 검색로봇 (Yeti) 허용
 User-agent: Yeti
 Allow: /
+Allow: /favicon.ico
+Allow: /favicon.png
+Allow: /favicon-16x16.png
+Allow: /favicon-32x32.png
+Allow: /apple-touch-icon.png
+Allow: /img/
+Allow: /assets/
 
-User-agent: Googlebot
-Allow: /
-
+# Sitemap 위치 지정
 Sitemap: https://www.antopinion.site/sitemap.xml
 

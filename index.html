@@ -10,27 +10,66 @@
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#ffffff" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AntOpinion - AI 기반 주식 여론 분석 서비스</title>
+    <title>AntOpinion (앤트오피니언) - AI 기반 주식 여론 분석 서비스</title>
     <meta name="description" content="AI 기반 주식 여론 분석 서비스. 실시간 주식 동향, 섹터별 의견, 투자심리 분석으로 스마트한 투자 결정 지원" />
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://www.antopinion.site/" />
-    <meta property="og:title" content="AntOpinion - AI 기반 주식 여론 분석 서비스" />
+    <meta property="og:title" content="AntOpinion (앤트오피니언) - AI 기반 주식 여론 분석 서비스" />
     <meta property="og:description" content="AI 기반 주식 여론 분석 서비스. 실시간 주식 동향, 섹터별 의견, 투자심리 분석으로 스마트한 투자 결정 지원" />
     <meta property="og:image" content="https://www.antopinion.site/img/mainLogo.png" />
     
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="https://www.antopinion.site/" />
-    <meta name="twitter:title" content="AntOpinion - AI 기반 주식 여론 분석 서비스" />
+    <meta name="twitter:title" content="AntOpinion (앤트오피니언) - AI 기반 주식 여론 분석 서비스" />
     <meta name="twitter:description" content="AI 기반 주식 여론 분석 서비스. 실시간 주식 동향, 섹터별 의견, 투자심리 분석으로 스마트한 투자 결정 지원" />
     <meta name="twitter:image" content="https://www.antopinion.site/img/mainLogo.png" />
     
     <!-- 네이버 검색 최적화 -->
     <meta name="naver-site-verification" content="6d071a93ecf74b4ae9fd3b90d8d334a90f695a4d" />
+    <meta name="keywords" content="AntOpinion, 앤트오피니언, 주식 여론 분석, AI 주식 분석, 주식 투자심리, 증시 분석, 주식 동향, 섹터별 의견, 투자 의사결정" />
+    
+    <!-- 구조화된 데이터 (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "AntOpinion",
+      "alternateName": "앤트오피니언",
+      "url": "https://www.antopinion.site",
+      "description": "AI 기반 주식 여론 분석 서비스. 실시간 주식 동향, 섹터별 의견, 투자심리 분석으로 스마트한 투자 결정 지원",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://www.antopinion.site/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "AntOpinion",
+      "alternateName": "앤트오피니언",
+      "url": "https://www.antopinion.site",
+      "logo": "https://www.antopinion.site/img/mainLogo.png",
+      "description": "AI 기반 주식 여론 분석 서비스"
+    }
+    </script>
   </head>
   <body>
+    <!-- 검색 로봇을 위한 정적 콘텐츠 -->
+    <noscript>
+      <div style="padding: 20px; text-align: center;">
+        <h1>AntOpinion (앤트오피니언)</h1>
+        <p>AI 기반 주식 여론 분석 서비스입니다. 실시간 주식 동향, 섹터별 의견, 투자심리 분석을 제공하여 스마트한 투자 결정을 돕습니다.</p>
+        <p>주식 시장 분석, 증시 동향, 투자 의견, AI 주식 분석 서비스를 제공합니다.</p>
+      </div>
+    </noscript>
+    
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

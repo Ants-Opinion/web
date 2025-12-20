@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebase';
 import { getRealStockData, getLatestDate } from '../services/realDataService';
-import { addToFavorites, removeFromFavorites, isSectorFavorite } from '../services/favoriteService';
+import { addToFavorites, removeFromFavorites, getUserFavorites } from '../services/favoriteService';
 import { getSectorIconPath } from '../services/sectorIconService';
 import Header from './Header';
 import Footer from './Footer';
@@ -121,18 +121,19 @@ const Dashboard: React.FC = () => {
     }
   }, [location.state, navigate, location.pathname]);
 
-  // 즐겨찾기 상태 초기화
+  // 즐겨찾기 상태 초기화 (N+1 쿼리 최적화: 1번의 쿼리로 모든 즐겨찾기 조회)
   const initializeFavoriteStates = async (stocksData: StockItem[]) => {
     if (!user) return stocksData;
-    
-    const stocksWithFavorites = await Promise.all(
-      stocksData.map(async (stock) => {
-        const isFav = await isSectorFavorite(stock.id);
-        return { ...stock, isFavorite: isFav };
-      })
-    );
-    
-    return stocksWithFavorites;
+
+    // 즐겨찾기 목록을 한 번만 조회
+    const userFavorites = await getUserFavorites();
+    const favoriteIds = new Set(userFavorites.map(f => f.sectorId));
+
+    // 메모리에서 매칭
+    return stocksData.map(stock => ({
+      ...stock,
+      isFavorite: favoriteIds.has(stock.id)
+    }));
   };
 
   // POST 데이터를 기반으로 데이터 로딩

@@ -1127,7 +1127,7 @@ const SectorDetail: React.FC = () => {
                 <span className="info-icon">ⓘ</span>
                 {showInfoTooltip && (
                   <span ref={infoTooltipRef} className="info-tooltip">
-                    Ant Opinion 데이터는 '기준일 -1일' 즉, 어제 데이터를 분석하여 제공합니다.
+                    현재 화면의 데이터는 전일 하루 동안(00시~24시) 수집된 결과이며, 매일 00시 경에 최신 정보로 갱신됩니다.
                   </span>
                 )}
               </span>

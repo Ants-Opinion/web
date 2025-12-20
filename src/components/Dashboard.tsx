@@ -354,9 +354,20 @@ const Dashboard: React.FC = () => {
     return ((negative / total) * 100).toFixed(1);
   };
 
+  // 오늘 기준 날짜 (오늘 -1일) 확인 함수
+  const getLatestDateString = (): string => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    return yesterday.toISOString().split('T')[0];
+  };
+
   // 행 클릭 핸들러
   const handleRowClick = (stock: StockItem) => {
-    if (!user) {
+    const latestDate = getLatestDateString();
+
+    // 오늘 기준 날짜(오늘 -1일)가 아니면 로그인 필요
+    if (!user && targetDate !== latestDate) {
       navigate('/login');
       return;
     }

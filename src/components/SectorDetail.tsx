@@ -4,6 +4,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import type { User } from 'firebase/auth';
 import { getSentimentCriteria, /* classifySentiment, */ initializeSentimentCriteria } from '../services/sentimentService';
 import { getSectorIconPath } from '../services/sectorIconService';
 // import { getRealStockData } from '../services/realDataService';
@@ -61,7 +62,7 @@ const SectorDetail: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  // const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [data, setData] = useState<SectorDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -83,10 +84,18 @@ const SectorDetail: React.FC = () => {
   const formulaTooltipWrapperRef = useRef<HTMLSpanElement>(null);
   const [totalScore, setTotalScore] = useState<number>(0);
 
+  // 오늘 기준 날짜 (오늘 -1일) 확인 함수
+  const getLatestDateString = (): string => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    return yesterday.toISOString().split('T')[0];
+  };
+
   useEffect(() => {
     // 사용자 인증 상태 확인
-    const unsubscribe =     onAuthStateChanged(auth, () => {
-      // setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
     });
 
     return () => unsubscribe();
@@ -626,6 +635,14 @@ const SectorDetail: React.FC = () => {
   };
 
   const handleFilterChange = (filter: '1일' | '1주') => {
+    const latestDate = getLatestDateString();
+
+    // 1주 필터로 변경하는 경우 또는 오늘 기준 날짜가 아닌 경우 로그인 필요
+    if (!user && (filter === '1주' || selectedDate !== latestDate)) {
+      navigate('/login');
+      return;
+    }
+
     setTimeFilter(filter);
     if (filter === '1일') {
       setSearchParams({ filter, date: selectedDate });
@@ -659,26 +676,32 @@ const SectorDetail: React.FC = () => {
 
   // 캘린더 관련 함수들
   const handleDateClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    // 로그인하지 않은 경우 캘린더 열기 불가 (날짜 변경 방지)
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
     const rect = event.currentTarget.getBoundingClientRect();
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
-    
+
     // 캘린더 크기 (대략적인 값)
     const calendarWidth = 320;
     const calendarHeight = 400;
-    
+
     // x 위치 계산 (화면 오른쪽 경계를 벗어나지 않도록)
     let x = rect.left;
     if (x + calendarWidth > windowWidth) {
       x = windowWidth - calendarWidth - 20;
     }
-    
+
     // y 위치 계산 (화면 아래쪽 경계를 벗어나지 않도록)
     let y = rect.bottom + 8;
     if (y + calendarHeight > windowHeight) {
       y = rect.top - calendarHeight - 8;
     }
-    
+
     setCalendarPosition({ x, y });
     setIsCalendarOpen(true);
   };
@@ -687,7 +710,47 @@ const SectorDetail: React.FC = () => {
     setIsCalendarOpen(false);
   };
 
+  // 이전 날짜로 이동
+  const handlePreviousDay = () => {
+    // 로그인하지 않은 경우 날짜 변경 불가
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    if (!selectedDate) return;
+    const currentDate = new Date(selectedDate);
+    currentDate.setDate(currentDate.getDate() - 1);
+    const newDate = currentDate.toISOString().split('T')[0];
+    setSelectedDate(newDate);
+    setSearchParams({ filter: timeFilter, date: newDate });
+  };
+
+  // 다음 날짜로 이동
+  const handleNextDay = () => {
+    // 로그인하지 않은 경우 날짜 변경 불가
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    if (!selectedDate) return;
+    const currentDate = new Date(selectedDate);
+    currentDate.setDate(currentDate.getDate() + 1);
+    const newDate = currentDate.toISOString().split('T')[0];
+    setSelectedDate(newDate);
+    setSearchParams({ filter: timeFilter, date: newDate });
+  };
+
   const handleDateSelect = (date: string) => {
+    const latestDate = getLatestDateString();
+
+    // 오늘 기준 날짜(오늘 -1일)가 아닌 날짜를 선택하면 로그인 필요
+    if (!user && date !== latestDate) {
+      navigate('/login');
+      return;
+    }
+
     setSelectedDate(date);
     setIsCalendarOpen(false);
   };
@@ -1098,15 +1161,15 @@ const SectorDetail: React.FC = () => {
           
           {/* Date Selector */}
           <div className="date-selector">
-            <div className="date-arrow">‹</div>
+            <button className="date-arrow" onClick={handlePreviousDay} disabled={loading}>‹</button>
             <div className="date-display" onClick={handleDateClick} style={{ cursor: 'pointer' }}>
-              {selectedDate || new Date().toLocaleDateString('ko-KR', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+              {selectedDate || new Date().toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
               })}
             </div>
-            <div className="date-arrow">›</div>
+            <button className="date-arrow" onClick={handleNextDay} disabled={loading}>›</button>
           </div>
         </div>
 

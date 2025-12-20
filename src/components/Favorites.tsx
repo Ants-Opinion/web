@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebase';
 import { getRealStockData, getLatestDate } from '../services/realDataService';
-import { getUserFavorites, removeFromFavorites, isSectorFavorite, type FavoriteSector } from '../services/favoriteService';
+import { getUserFavorites, removeFromFavorites, type FavoriteSector } from '../services/favoriteService';
 import { getSectorIconPath } from '../services/sectorIconService';
 import Header from './Header';
 import Footer from './Footer';
@@ -141,20 +141,16 @@ const Favorites: React.FC = () => {
     }
   }, [location.state, navigate, location.pathname]);
 
-  // 즐겨찾기 상태 초기화 함수
-  const initializeFavoriteStates = async (stockData: StockItem[]) => {
-    try {
-      const stocksWithFavorites = await Promise.all(
-        stockData.map(async (stock) => {
-          const isFavorite = await isSectorFavorite(stock.id);
-          return { ...stock, isFavorite };
-        })
-      );
-      return stocksWithFavorites;
-    } catch (error) {
-      console.error('즐겨찾기 상태 초기화 오류:', error);
-      return stockData;
-    }
+  // 즐겨찾기 상태 초기화 함수 (N+1 쿼리 최적화: 이미 로드된 즐겨찾기 목록 활용)
+  const initializeFavoriteStates = (stockData: StockItem[], favoritesList: FavoriteSector[]) => {
+    // 이미 로드된 즐겨찾기 목록에서 ID Set 생성
+    const favoriteIds = new Set(favoritesList.map(f => f.sectorId));
+
+    // 메모리에서 매칭
+    return stockData.map(stock => ({
+      ...stock,
+      isFavorite: favoriteIds.has(stock.id)
+    }));
   };
 
   // POST 데이터를 기반으로 데이터 로딩
@@ -207,18 +203,18 @@ const Favorites: React.FC = () => {
       favoriteIds.includes(stock.id) || favoriteNames.includes(stock.sector)
     );
     
-    // 즐겨찾기 상태 초기화
-    const stocksWithFavorites = await initializeFavoriteStates(favoriteStocks);
+    // 즐겨찾기 상태 초기화 (이미 로드된 favoritesList 활용)
+    const stocksWithFavorites = initializeFavoriteStates(favoriteStocks, favoritesList);
     setStocks(stocksWithFavorites);
     stocksRef.current = stocksWithFavorites;
-    
+
     // 오류 메시지 설정 (즐겨찾기된 섹터가 없는 경우에만)
     if (favoriteStocks.length === 0) {
       setError('즐겨찾기된 섹터가 없습니다.');
     } else {
       setError('');
     }
-    
+
     console.log('POST 데이터 로딩 완료:', stocksWithFavorites);
   };
 
@@ -328,14 +324,14 @@ const Favorites: React.FC = () => {
       console.log('즐겨찾기 이름 목록:', favoriteNames);
       
       // ID와 이름 모두로 필터링 (realDataService에서 id가 실제로는 섹터 이름임)
-      const favoriteStocks = realStockData.filter(stock => 
+      const favoriteStocks = realStockData.filter(stock =>
         favoriteIds.includes(stock.id) || favoriteNames.includes(stock.sector)
       );
       console.log('필터링된 즐겨찾기 데이터:', favoriteStocks.length, '개');
       console.log('필터링된 섹터들:', favoriteStocks.map(s => s.sector));
-      
-      // 즐겨찾기 상태 초기화
-      const stocksWithFavorites = await initializeFavoriteStates(favoriteStocks);
+
+      // 즐겨찾기 상태 초기화 (이미 로드된 favorites 활용)
+      const stocksWithFavorites = initializeFavoriteStates(favoriteStocks, favorites);
       setStocks(stocksWithFavorites);
       stocksRef.current = stocksWithFavorites;
       

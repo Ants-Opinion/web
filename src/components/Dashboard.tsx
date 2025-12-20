@@ -39,9 +39,11 @@ const Dashboard: React.FC = () => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarPosition, setCalendarPosition] = useState({ x: 0, y: 0 });
   const [showInfoTooltip, setShowInfoTooltip] = useState(false);
+  const [showScoreTooltip, setShowScoreTooltip] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const tooltipWrapperRef = useRef<HTMLSpanElement>(null);
+  const scoreTooltipRef = useRef<HTMLDivElement>(null);
 
   const user = auth.currentUser;
 
@@ -412,7 +414,7 @@ const Dashboard: React.FC = () => {
             <span className="info-icon">ⓘ</span>
             {showInfoTooltip && (
               <div ref={tooltipRef} className="info-tooltip">
-                Ant Opinion 데이터는 '기준일 -1일' 즉, 어제 데이터를 분석하여 제공합니다.
+                현재 화면의 데이터는 전일 하루 동안(00시~24시) 수집된 결과이며, 매일 00시 경에 최신 정보로 갱신됩니다.
               </div>
             )}
           </span>
@@ -516,7 +518,25 @@ const Dashboard: React.FC = () => {
             <div className="table-header">
               <div className="table-header-left">섹션</div>
               <div className="table-header-right">
-                <div className="table-header-column score">종합점수</div>
+                <div className="table-header-column score">
+                  종합점수
+                  <span
+                    className="score-info-wrapper"
+                    onMouseEnter={!isMobile ? () => setShowScoreTooltip(true) : undefined}
+                    onMouseLeave={!isMobile ? () => setShowScoreTooltip(false) : undefined}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowScoreTooltip(!showScoreTooltip);
+                    }}
+                  >
+                    <span className="score-info-icon">ⓘ</span>
+                    {showScoreTooltip && (
+                      <div ref={scoreTooltipRef} className="score-tooltip">
+                        텔레그램에서 가장 화제가 된(조회수가 높은) 종목과 실제 대화방의 분위기(긍정/부정)를 종합해 AI가 종합하여 점수를 매깁니다. 많이 언급되고 조회수가 높을수록 점수에 더 큰 영향을 미칩니다.
+                      </div>
+                    )}
+                  </span>
+                </div>
                 <div className="table-header-column positive">긍정적 의견</div>
                 <div className="table-header-column negative">부정적 의견</div>
                 <div className="table-header-column neutral">중립적 의견</div>

@@ -7,5 +7,8 @@ export default defineConfig({
   server: {
     port: 5174,
     host: true
+  },
+  esbuild: {
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : []
   }
 })

@@ -21,24 +21,45 @@ interface StockData {
 }
 
 
-// 가장 최근 날짜 가져오기
+// 서울 시간 기준으로 어제 날짜 계산
+const getSeoulYesterday = (): string => {
+  const now = new Date();
+  // 서울 시간대로 현재 날짜 구하기
+  const seoulNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  seoulNow.setDate(seoulNow.getDate() - 1);
+
+  const year = seoulNow.getFullYear();
+  const month = String(seoulNow.getMonth() + 1).padStart(2, '0');
+  const day = String(seoulNow.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+};
+
+// 서울 시간 기준으로 오늘 날짜 계산
+const getSeoulToday = (): string => {
+  const now = new Date();
+  const seoulDateStr = now.toLocaleString('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  return seoulDateStr;
+};
+
+// 가장 최근 날짜 가져오기 (서울 시간 기준)
 export const getLatestDate = async (): Promise<string> => {
   try {
-    // 오늘 날짜의 하루 전을 기준으로 설정
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    const yesterdayString = yesterday.toISOString().split('T')[0];
-    
-    console.log(`오늘 날짜: ${today.toISOString().split('T')[0]}, 기준일자: ${yesterdayString}`);
+    // 서울 시간 기준으로 오늘과 어제 날짜 계산
+    const todayString = getSeoulToday();
+    const yesterdayString = getSeoulYesterday();
+
+    console.log(`[서울시간] 오늘 날짜: ${todayString}, 기준일자(어제): ${yesterdayString}`);
     return yesterdayString;
   } catch (error) {
     console.error('최신 날짜 가져오기 오류:', error);
-    // 오류 발생 시 기본값으로 어제 날짜 반환
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    return yesterday.toISOString().split('T')[0];
+    // 오류 발생 시 기본값으로 서울 시간 기준 어제 날짜 반환
+    return getSeoulYesterday();
   }
 };
 

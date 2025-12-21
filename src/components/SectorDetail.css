@@ -145,6 +145,115 @@
   background: #0D6BC7;
 }
 
+/* No Data Wrapper - 개선된 데이터 없음 디자인 */
+.no-data-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  text-align: center;
+  padding: 40px 20px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  margin: 20px auto;
+  max-width: 600px;
+}
+
+.no-data-wrapper .no-data-illustration {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 24px;
+  animation: gentleFloat 3s ease-in-out infinite;
+}
+
+@keyframes gentleFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.no-data-wrapper .no-data-title {
+  color: #0B1215;
+  font-size: 22px;
+  font-family: Pretendard;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.no-data-wrapper .no-data-description {
+  color: #676767;
+  font-size: 15px;
+  font-family: Pretendard;
+  font-weight: 400;
+  line-height: 1.6;
+  margin-bottom: 8px;
+  max-width: 400px;
+}
+
+.no-data-wrapper .no-data-date-info {
+  color: #107AEB;
+  font-size: 14px;
+  font-family: Pretendard;
+  font-weight: 500;
+  margin-bottom: 28px;
+  padding: 8px 16px;
+  background: rgba(16, 122, 235, 0.08);
+  border-radius: 20px;
+  display: inline-block;
+}
+
+.no-data-wrapper .no-data-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.no-data-wrapper .no-data-btn-primary {
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #107AEB 0%, #0D6BC7 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-family: Pretendard;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 14px rgba(16, 122, 235, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.no-data-wrapper .no-data-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 122, 235, 0.35);
+}
+
+.no-data-wrapper .no-data-btn-secondary {
+  padding: 14px 28px;
+  background: #F5F5F5;
+  color: #676767;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-family: Pretendard;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.no-data-wrapper .no-data-btn-secondary:hover {
+  background: #EBEBEB;
+  color: #0B1215;
+}
+
 /* Section Info */
 .section-info {
   display: flex;

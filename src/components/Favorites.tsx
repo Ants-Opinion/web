@@ -8,6 +8,7 @@ import { addDaysToDateString } from '../utils/dateUtils';
 import Header from './Header';
 import Footer from './Footer';
 import Calendar from './Calendar';
+import ConfirmDialog from './ConfirmDialog';
 import './Dashboard.css';
 
 // 간단한 타입 정의
@@ -44,6 +45,9 @@ const Favorites: React.FC = () => {
   const [showInfoTooltip, setShowInfoTooltip] = useState(false);
   const [showScoreTooltip, setShowScoreTooltip] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showNoDataDialog, setShowNoDataDialog] = useState(false);
+  const [noDataDate, setNoDataDate] = useState<string>('');
+  const [showNoDataMessage, setShowNoDataMessage] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const tooltipWrapperRef = useRef<HTMLSpanElement>(null);
   const scoreTooltipRef = useRef<HTMLDivElement>(null);
@@ -301,14 +305,15 @@ const Favorites: React.FC = () => {
     try {
       setLoading(true);
       setError('');
-      
+      setShowNoDataMessage(false);
+
       console.log('=== 즐겨찾기 데이터 로딩 시작 ===');
       console.log('현재 즐겨찾기 목록:', favorites);
       console.log('대상 날짜:', targetDate);
       console.log('시간 필터:', timeFilter);
-      
+
       let realStockData: StockItem[] = [];
-      
+
       if (timeFilter === '1주') {
         const weekData = await loadWeekData(targetDate);
         realStockData = weekData;
@@ -318,12 +323,20 @@ const Favorites: React.FC = () => {
 
       console.log('가져온 전체 데이터:', realStockData.length, '개');
 
+      // 전체 데이터가 없는 경우 다이얼로그 표시
+      if (realStockData.length === 0) {
+        setNoDataDate(targetDate);
+        setShowNoDataDialog(true);
+        setLoading(false);
+        return;
+      }
+
       // 즐겨찾기 항목만 필터링
       const favoriteIds = favorites.map(fav => fav.sectorId);
       const favoriteNames = favorites.map(fav => fav.sectorName);
       console.log('즐겨찾기 ID 목록:', favoriteIds);
       console.log('즐겨찾기 이름 목록:', favoriteNames);
-      
+
       // ID와 이름 모두로 필터링 (realDataService에서 id가 실제로는 섹터 이름임)
       const favoriteStocks = realStockData.filter(stock =>
         favoriteIds.includes(stock.id) || favoriteNames.includes(stock.sector)
@@ -335,9 +348,9 @@ const Favorites: React.FC = () => {
       const stocksWithFavorites = initializeFavoriteStates(favoriteStocks, favorites);
       setStocks(stocksWithFavorites);
       stocksRef.current = stocksWithFavorites;
-      
+
       console.log('최종 설정된 stocks:', stocksWithFavorites.length, '개');
-      
+
       // POST 데이터 처리 중이 아닐 때만 오류 상태 설정
       if (!isProcessingPostData) {
         if (favoriteStocks.length === 0) {
@@ -346,7 +359,7 @@ const Favorites: React.FC = () => {
           setError('');
         }
       }
-      
+
     } catch (err) {
       console.error('데이터 로딩 오류:', err);
       // POST 데이터 처리 중이 아닐 때만 오류 상태 설정
@@ -356,6 +369,21 @@ const Favorites: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 이전 날짜 데이터 로딩 (다이얼로그에서 확인 클릭 시)
+  const handleLoadPreviousData = () => {
+    setShowNoDataDialog(false);
+    setShowNoDataMessage(false);
+    const previousDate = addDaysToDateString(noDataDate, -1);
+    setTargetDate(previousDate);
+    setHasProcessedPostData(false);
+  };
+
+  // 다이얼로그 취소 - 데이터 없음 메시지 표시
+  const handleCancelNoDataDialog = () => {
+    setShowNoDataDialog(false);
+    setShowNoDataMessage(true);
   };
 
   // 시간 필터 변경
@@ -550,13 +578,42 @@ const Favorites: React.FC = () => {
               </div>
             </div>
           </div>
+        ) : showNoDataMessage ? (
+          <div className="favorites-no-data-container">
+            <svg className="no-data-illustration" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="60" cy="60" r="55" fill="#F0F7FF" stroke="#107AEB" strokeWidth="2" strokeDasharray="8 4"/>
+              <rect x="30" y="45" width="60" height="40" rx="6" fill="white" stroke="#107AEB" strokeWidth="2"/>
+              <line x1="38" y1="55" x2="82" y2="55" stroke="#E0E0E0" strokeWidth="3" strokeLinecap="round"/>
+              <line x1="38" y1="65" x2="70" y2="65" stroke="#E0E0E0" strokeWidth="3" strokeLinecap="round"/>
+              <line x1="38" y1="75" x2="60" y2="75" stroke="#E0E0E0" strokeWidth="3" strokeLinecap="round"/>
+              <circle cx="85" cy="35" r="18" fill="#107AEB"/>
+              <path d="M80 35L84 39L92 31" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <div className="no-data-title">아직 데이터가 준비되지 않았어요</div>
+            <div className="no-data-description">
+              해당 일자의 데이터가 생성 중이거나 아직 수집되지 않았습니다.
+            </div>
+            <div className="no-data-date-info">
+              {noDataDate}
+            </div>
+            <div className="no-data-actions">
+              <button className="no-data-btn-primary" onClick={() => {
+                const previousDate = addDaysToDateString(noDataDate, -1);
+                setShowNoDataMessage(false);
+                setTargetDate(previousDate);
+                setHasProcessedPostData(false);
+              }}>
+                <span>←</span> 이전 날짜 확인하기
+              </button>
+            </div>
+          </div>
         ) : error && !isProcessingPostData && !loading && stocks.length === 0 && targetDate ? (
           <div className="favorites-no-data-container">
             <div className="no-data-icon">⭐</div>
             <h2>{error.includes('즐겨찾기된 섹터가 없습니다') ? '즐겨찾기된 섹터가 없습니다' : '데이터가 없거나 오류가 발생했습니다'}</h2>
             <p>
-              {error.includes('즐겨찾기된 섹터가 없습니다') 
-                ? '대시보드에서 관심 있는 섹터를 즐겨찾기에 추가해주세요.' 
+              {error.includes('즐겨찾기된 섹터가 없습니다')
+                ? '대시보드에서 관심 있는 섹터를 즐겨찾기에 추가해주세요.'
                 : `${targetDate} 날짜에 데이터가 없습니다. 다른 날짜를 선택해주세요.`}
             </p>
             <div className="no-data-actions">
@@ -709,6 +766,17 @@ const Favorites: React.FC = () => {
         onDateSelect={handleDateSelect}
         selectedDate={targetDate}
         position={calendarPosition}
+      />
+
+      {/* 데이터 없음 확인 다이얼로그 */}
+      <ConfirmDialog
+        isOpen={showNoDataDialog}
+        title="데이터 없음"
+        message={`${noDataDate} 일자의 데이터가 생성 중이거나 데이터가 없습니다. 이전 데이터를 확인하시겠습니까?`}
+        confirmText="예"
+        cancelText="아니오"
+        onConfirm={handleLoadPreviousData}
+        onCancel={handleCancelNoDataDialog}
       />
     </div>
   );

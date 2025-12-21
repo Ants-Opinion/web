@@ -8,6 +8,7 @@ import { getSeoulDateString, getSeoulYesterdayString, addDaysToDateString } from
 import Header from './Header';
 import Footer from './Footer';
 import Calendar from './Calendar';
+import ConfirmDialog from './ConfirmDialog';
 import './Dashboard.css';
 
 // 간단한 타입 정의
@@ -42,6 +43,9 @@ const Dashboard: React.FC = () => {
   const [showInfoTooltip, setShowInfoTooltip] = useState(false);
   const [showScoreTooltip, setShowScoreTooltip] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showNoDataDialog, setShowNoDataDialog] = useState(false);
+  const [noDataDate, setNoDataDate] = useState<string>('');
+  const [showNoDataMessage, setShowNoDataMessage] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const tooltipWrapperRef = useRef<HTMLSpanElement>(null);
   const scoreTooltipRef = useRef<HTMLDivElement>(null);
@@ -196,31 +200,54 @@ const Dashboard: React.FC = () => {
   // 데이터 로딩 함수
   const loadData = async () => {
     if (!targetDate) return;
-    
+
     try {
       setLoading(true);
       setError('');
-      
+      setShowNoDataMessage(false);
+
       let stocksData: StockItem[] = [];
-      
+
       if (timeFilter === '1일') {
         stocksData = await getRealStockData(targetDate);
       } else if (timeFilter === '1주') {
         stocksData = await loadWeekData(targetDate);
       }
-      
+
+      // 데이터가 없는 경우 다이얼로그 표시
+      if (stocksData.length === 0) {
+        setNoDataDate(targetDate);
+        setShowNoDataDialog(true);
+        setLoading(false);
+        return;
+      }
+
       // 즐겨찾기 상태 초기화
       const stocksWithFavorites = await initializeFavoriteStates(stocksData);
-      
+
       setStocks(stocksWithFavorites);
       stocksRef.current = stocksWithFavorites;
-      
+
     } catch (err) {
       console.error('데이터 로딩 실패:', err);
       setError('데이터를 불러오는 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
+  };
+
+  // 이전 날짜 데이터 로딩 (다이얼로그에서 확인 클릭 시)
+  const handleLoadPreviousData = () => {
+    setShowNoDataDialog(false);
+    setShowNoDataMessage(false);
+    const previousDate = addDaysToDateString(noDataDate, -1);
+    setTargetDate(previousDate);
+  };
+
+  // 다이얼로그 취소 - 데이터 없음 메시지 표시
+  const handleCancelNoDataDialog = () => {
+    setShowNoDataDialog(false);
+    setShowNoDataMessage(true);
   };
 
   // 즐겨찾기 추가/제거
@@ -469,6 +496,34 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
           </div>
+        ) : showNoDataMessage ? (
+          <div className="favorites-no-data-container">
+            <svg className="no-data-illustration" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="60" cy="60" r="55" fill="#F0F7FF" stroke="#107AEB" strokeWidth="2" strokeDasharray="8 4"/>
+              <rect x="30" y="45" width="60" height="40" rx="6" fill="white" stroke="#107AEB" strokeWidth="2"/>
+              <line x1="38" y1="55" x2="82" y2="55" stroke="#E0E0E0" strokeWidth="3" strokeLinecap="round"/>
+              <line x1="38" y1="65" x2="70" y2="65" stroke="#E0E0E0" strokeWidth="3" strokeLinecap="round"/>
+              <line x1="38" y1="75" x2="60" y2="75" stroke="#E0E0E0" strokeWidth="3" strokeLinecap="round"/>
+              <circle cx="85" cy="35" r="18" fill="#107AEB"/>
+              <path d="M80 35L84 39L92 31" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <div className="no-data-title">아직 데이터가 준비되지 않았어요</div>
+            <div className="no-data-description">
+              해당 일자의 데이터가 생성 중이거나 아직 수집되지 않았습니다.
+            </div>
+            <div className="no-data-date-info">
+              {noDataDate}
+            </div>
+            <div className="no-data-actions">
+              <button className="no-data-btn-primary" onClick={() => {
+                const previousDate = addDaysToDateString(noDataDate, -1);
+                setShowNoDataMessage(false);
+                setTargetDate(previousDate);
+              }}>
+                <span>←</span> 이전 날짜 확인하기
+              </button>
+            </div>
+          </div>
         ) : error && !location.state?.postData && !loading ? (
           <div className="favorites-no-data-container">
             <div className="no-data-icon">⚠️</div>
@@ -633,6 +688,17 @@ const Dashboard: React.FC = () => {
         onDateSelect={handleDateSelect}
         selectedDate={targetDate}
         position={calendarPosition}
+      />
+
+      {/* 데이터 없음 확인 다이얼로그 */}
+      <ConfirmDialog
+        isOpen={showNoDataDialog}
+        title="데이터 없음"
+        message={`${noDataDate} 일자의 데이터가 생성 중이거나 데이터가 없습니다. 이전 데이터를 확인하시겠습니까?`}
+        confirmText="예"
+        cancelText="아니오"
+        onConfirm={handleLoadPreviousData}
+        onCancel={handleCancelNoDataDialog}
       />
     </div>
   );

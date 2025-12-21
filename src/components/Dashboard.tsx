@@ -4,6 +4,7 @@ import { auth } from '../firebase';
 import { getRealStockData, getLatestDate } from '../services/realDataService';
 import { addToFavorites, removeFromFavorites, getUserFavorites } from '../services/favoriteService';
 import { getSectorIconPath } from '../services/sectorIconService';
+import { getSeoulDateString, getSeoulYesterdayString, addDaysToDateString } from '../utils/dateUtils';
 import Header from './Header';
 import Footer from './Footer';
 import Calendar from './Calendar';
@@ -183,8 +184,8 @@ const Dashboard: React.FC = () => {
         }
       } catch (err) {
         console.error('최신 날짜 가져오기 실패:', err);
-        // 기본값으로 오늘 날짜 사용
-        const today = new Date().toISOString().split('T')[0];
+        // 기본값으로 오늘 날짜 사용 (서울 시간 기준)
+        const today = getSeoulDateString();
         setTargetDate(today);
       }
     };
@@ -275,9 +276,7 @@ const Dashboard: React.FC = () => {
       navigate('/login');
       return;
     }
-    const currentDate = new Date(targetDate);
-    currentDate.setDate(currentDate.getDate() - 1);
-    setTargetDate(currentDate.toISOString().split('T')[0]);
+    setTargetDate(addDaysToDateString(targetDate, -1));
   };
 
   const handleNextDay = () => {
@@ -285,9 +284,7 @@ const Dashboard: React.FC = () => {
       navigate('/login');
       return;
     }
-    const currentDate = new Date(targetDate);
-    currentDate.setDate(currentDate.getDate() + 1);
-    setTargetDate(currentDate.toISOString().split('T')[0]);
+    setTargetDate(addDaysToDateString(targetDate, 1));
   };
 
   // 날짜 클릭 핸들러
@@ -357,12 +354,9 @@ const Dashboard: React.FC = () => {
     return ((negative / total) * 100).toFixed(1);
   };
 
-  // 오늘 기준 날짜 (오늘 -1일) 확인 함수
+  // 오늘 기준 날짜 (오늘 -1일) 확인 함수 - 서울 시간 기준
   const getLatestDateString = (): string => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    return yesterday.toISOString().split('T')[0];
+    return getSeoulYesterdayString();
   };
 
   // 행 클릭 핸들러

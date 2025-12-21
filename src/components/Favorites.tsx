@@ -4,6 +4,7 @@ import { auth } from '../firebase';
 import { getRealStockData, getLatestDate } from '../services/realDataService';
 import { getUserFavorites, removeFromFavorites, type FavoriteSector } from '../services/favoriteService';
 import { getSectorIconPath } from '../services/sectorIconService';
+import { addDaysToDateString } from '../utils/dateUtils';
 import Header from './Header';
 import Footer from './Footer';
 import Calendar from './Calendar';
@@ -367,16 +368,12 @@ const Favorites: React.FC = () => {
 
   // 날짜 변경
   const handlePreviousDay = () => {
-    const currentDate = new Date(targetDate);
-    currentDate.setDate(currentDate.getDate() - 1);
-    setTargetDate(currentDate.toISOString().split('T')[0]);
+    setTargetDate(addDaysToDateString(targetDate, -1));
     setHasProcessedPostData(false); // POST 데이터 처리 완료 상태 리셋
   };
 
   const handleNextDay = () => {
-    const currentDate = new Date(targetDate);
-    currentDate.setDate(currentDate.getDate() + 1);
-    setTargetDate(currentDate.toISOString().split('T')[0]);
+    setTargetDate(addDaysToDateString(targetDate, 1));
     setHasProcessedPostData(false); // POST 데이터 처리 완료 상태 리셋
   };
 

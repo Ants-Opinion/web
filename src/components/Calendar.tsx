@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { getSeoulDateString } from '../utils/dateUtils';
 import './Calendar.css';
 
 interface CalendarProps {
@@ -57,9 +58,9 @@ const Calendar: React.FC<CalendarProps> = ({
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
   };
 
-  // 날짜 선택
+  // 날짜 선택 (서울 시간 기준)
   const handleDateClick = (date: Date) => {
-    const dateString = date.toISOString().split('T')[0];
+    const dateString = getSeoulDateString(date);
     onDateSelect(dateString);
     onClose();
   };

@@ -7,6 +7,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { getSentimentCriteria, /* classifySentiment, */ initializeSentimentCriteria } from '../services/sentimentService';
 import { getSectorIconPath } from '../services/sectorIconService';
+import { getSeoulDateString, getSeoulYesterdayString, addDaysToDateString } from '../utils/dateUtils';
 // import { getRealStockData } from '../services/realDataService';
 import Header from './Header';
 import Footer from './Footer';
@@ -84,12 +85,9 @@ const SectorDetail: React.FC = () => {
   const formulaTooltipWrapperRef = useRef<HTMLSpanElement>(null);
   const [totalScore, setTotalScore] = useState<number>(0);
 
-  // 오늘 기준 날짜 (오늘 -1일) 확인 함수
+  // 오늘 기준 날짜 (오늘 -1일) 확인 함수 - 서울 시간 기준
   const getLatestDateString = (): string => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    return yesterday.toISOString().split('T')[0];
+    return getSeoulYesterdayString();
   };
 
   useEffect(() => {
@@ -223,7 +221,7 @@ const SectorDetail: React.FC = () => {
         if (timeFilter === '1주') {
           // 1주 필터: 7일간 데이터 합산
           console.log('1주 필터 선택: 7일간 데이터 합산 중...');
-          sectorData = await loadWeekSectorData(sectorId, selectedDate || new Date().toISOString().split('T')[0]);
+          sectorData = await loadWeekSectorData(sectorId, selectedDate || getSeoulDateString());
         } else {
           // 1일 필터: 단일 날짜 데이터
           console.log('1일 필터 선택: 단일 날짜 데이터 로딩 중...');
@@ -234,7 +232,7 @@ const SectorDetail: React.FC = () => {
           setData(sectorData);
           
           // 종합점수 가져오기
-          const score = await getTotalScoreForSector(sectorId, selectedDate || new Date().toISOString().split('T')[0]);
+          const score = await getTotalScoreForSector(sectorId, selectedDate || getSeoulDateString());
           setTotalScore(score);
           console.log('종합점수:', score);
           
@@ -305,12 +303,9 @@ const SectorDetail: React.FC = () => {
 
   const loadWeekSectorData = async (sectorId: string, baseDate: string) => {
     const weekData: SectorDetailData[] = [];
-    const base = new Date(baseDate);
 
     for (let i = 0; i < 7; i++) {
-      const currentDate = new Date(base);
-      currentDate.setDate(base.getDate() - i);
-      const formattedDate = currentDate.toISOString().split('T')[0];
+      const formattedDate = addDaysToDateString(baseDate, -i);
       const dailyData = await getSectorDetailData(sectorId, formattedDate);
       if (dailyData) {
         weekData.push(dailyData);
@@ -719,9 +714,7 @@ const SectorDetail: React.FC = () => {
     }
 
     if (!selectedDate) return;
-    const currentDate = new Date(selectedDate);
-    currentDate.setDate(currentDate.getDate() - 1);
-    const newDate = currentDate.toISOString().split('T')[0];
+    const newDate = addDaysToDateString(selectedDate, -1);
     setSelectedDate(newDate);
     setSearchParams({ filter: timeFilter, date: newDate });
   };
@@ -735,9 +728,7 @@ const SectorDetail: React.FC = () => {
     }
 
     if (!selectedDate) return;
-    const currentDate = new Date(selectedDate);
-    currentDate.setDate(currentDate.getDate() + 1);
-    const newDate = currentDate.toISOString().split('T')[0];
+    const newDate = addDaysToDateString(selectedDate, 1);
     setSelectedDate(newDate);
     setSearchParams({ filter: timeFilter, date: newDate });
   };
@@ -903,7 +894,7 @@ const SectorDetail: React.FC = () => {
       setModalTitle(type === 'positive' ? '긍정적 반응' : type === 'negative' ? '부정적 반응' : '중립적 반응');
       
       // 선택된 날짜 또는 오늘 날짜 사용
-      const targetDate = selectedDate || new Date().toISOString().split('T')[0];
+      const targetDate = selectedDate || getSeoulDateString();
       console.log(`모달 열기: ${type}, 날짜: ${targetDate}`);
       
       // 상세 반응 데이터 가져오기
@@ -1398,7 +1389,7 @@ const SectorDetail: React.FC = () => {
         isOpen={isCalendarOpen}
         onClose={handleCalendarClose}
         onDateSelect={handleDateSelect}
-        selectedDate={selectedDate || new Date().toISOString().split('T')[0]}
+        selectedDate={selectedDate || getSeoulDateString()}
         position={calendarPosition}
       />
     </div>

@@ -13,6 +13,7 @@ import Header from './Header';
 import Footer from './Footer';
 import ReactionModal from './ReactionModal';
 import Calendar from './Calendar';
+import ConfirmDialog from './ConfirmDialog';
 import './SectorDetail.css';
 
 interface ReactionItem {
@@ -79,6 +80,9 @@ const SectorDetail: React.FC = () => {
   const [showInfoTooltip, setShowInfoTooltip] = useState(false);
   const [showFormulaTooltip, setShowFormulaTooltip] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showNoDataDialog, setShowNoDataDialog] = useState(false);
+  const [noDataDate, setNoDataDate] = useState<string>('');
+  const [showNoDataMessage, setShowNoDataMessage] = useState(false);
   const infoTooltipRef = useRef<HTMLSpanElement>(null);
   const infoTooltipWrapperRef = useRef<HTMLSpanElement>(null);
   const formulaTooltipRef = useRef<HTMLSpanElement>(null);
@@ -88,6 +92,21 @@ const SectorDetail: React.FC = () => {
   // 오늘 기준 날짜 (오늘 -1일) 확인 함수 - 서울 시간 기준
   const getLatestDateString = (): string => {
     return getSeoulYesterdayString();
+  };
+
+  // 이전 날짜 데이터 로딩 (다이얼로그에서 확인 클릭 시)
+  const handleLoadPreviousData = () => {
+    setShowNoDataDialog(false);
+    setShowNoDataMessage(false);
+    const previousDate = addDaysToDateString(noDataDate, -1);
+    setSelectedDate(previousDate);
+    setSearchParams({ filter: timeFilter, date: previousDate });
+  };
+
+  // 다이얼로그 취소 - 데이터 없음 메시지 표시
+  const handleCancelNoDataDialog = () => {
+    setShowNoDataDialog(false);
+    setShowNoDataMessage(true);
   };
 
   useEffect(() => {
@@ -204,6 +223,7 @@ const SectorDetail: React.FC = () => {
       try {
         setLoading(true);
         setError('');
+        setShowNoDataMessage(false);
         console.log(`=== 섹터 ${sectorId} 세부 정보 로딩 시작 ===`);
         console.log(`선택된 시간 필터: ${timeFilter}`);
         console.log(`선택된 날짜: ${selectedDate || '없음'}`);
@@ -253,15 +273,14 @@ const SectorDetail: React.FC = () => {
           console.log('로딩된 데이터 날짜:', sectorData.date);
           console.log('선택된 날짜:', selectedDate || '없음');
         } else {
-          // 선택한 날짜에 데이터가 없는 경우
-          const selectedDateDisplay = selectedDate ? new Date(selectedDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : '오늘';
-          const errorMessage = `섹터 "${sectorId}"의 ${selectedDateDisplay} ${timeFilter === '1일' ? '데이터를 찾을 수 없습니다' : timeFilter === '1주' ? '최근 7일간 데이터를 찾을 수 없습니다' : '최근 30일간 데이터를 찾을 수 없습니다'}. 다른 날짜를 선택하거나 홈으로 돌아가서 다른 섹터를 확인해보세요.`;
-          setError(errorMessage);
-          console.log('=== 섹터 데이터 로딩 실패 ===');
-          console.log('오류 메시지:', errorMessage);
-          console.log('시도한 데이터베이스 경로:');
-          console.log(`- sector_detail/${sectorId}/dates/${selectedDate || '오늘'}`);
-          console.log(`- sector_score/${sectorId}/dates/${selectedDate || '오늘'}`);
+          // 선택한 날짜에 데이터가 없는 경우 다이얼로그 표시
+          const currentDate = selectedDate || getSeoulDateString();
+          setNoDataDate(currentDate);
+          setShowNoDataDialog(true);
+          setLoading(false);
+          console.log('=== 섹터 데이터 없음 - 다이얼로그 표시 ===');
+          console.log('날짜:', currentDate);
+          return;
         }
       } catch (err) {
         console.error('=== 섹터 세부 정보 로딩 오류 ===');
@@ -978,6 +997,72 @@ const SectorDetail: React.FC = () => {
     );
   }
 
+  if (showNoDataMessage) {
+    return (
+      <div className="sector-detail-container">
+        <Header currentPage="sector" />
+
+        {/* No Data Content */}
+        <div className="main-content">
+          <div className="section-info">
+            <div className="section-icon">
+              <span className="sector-initial">{sectorId?.charAt(0) || 'S'}</span>
+            </div>
+            <div className="section-details">
+              <h1 className="section-title">{sectorId || '섹터'}</h1>
+              <div className="section-date">{noDataDate} 기준</div>
+            </div>
+          </div>
+
+          <div className="no-data-wrapper">
+            <svg className="no-data-illustration" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="60" cy="60" r="55" fill="#F0F7FF" stroke="#107AEB" strokeWidth="2" strokeDasharray="8 4"/>
+              <rect x="30" y="45" width="60" height="40" rx="6" fill="white" stroke="#107AEB" strokeWidth="2"/>
+              <line x1="38" y1="55" x2="82" y2="55" stroke="#E0E0E0" strokeWidth="3" strokeLinecap="round"/>
+              <line x1="38" y1="65" x2="70" y2="65" stroke="#E0E0E0" strokeWidth="3" strokeLinecap="round"/>
+              <line x1="38" y1="75" x2="60" y2="75" stroke="#E0E0E0" strokeWidth="3" strokeLinecap="round"/>
+              <circle cx="85" cy="35" r="18" fill="#107AEB"/>
+              <path d="M80 35L84 39L92 31" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <div className="no-data-title">아직 데이터가 준비되지 않았어요</div>
+            <div className="no-data-description">
+              해당 일자의 데이터가 생성 중이거나 아직 수집되지 않았습니다.
+            </div>
+            <div className="no-data-date-info">
+              {noDataDate}
+            </div>
+            <div className="no-data-actions">
+              <button className="no-data-btn-primary" onClick={() => {
+                const previousDate = addDaysToDateString(noDataDate, -1);
+                setShowNoDataMessage(false);
+                setSelectedDate(previousDate);
+                setSearchParams({ filter: timeFilter, date: previousDate });
+              }}>
+                <span>←</span> 이전 날짜 확인하기
+              </button>
+              <button className="no-data-btn-secondary" onClick={handleGoBack}>
+                홈으로 돌아가기
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <Footer />
+
+        {/* 데이터 없음 확인 다이얼로그 */}
+        <ConfirmDialog
+          isOpen={showNoDataDialog}
+          title="데이터 없음"
+          message={`${noDataDate} 일자의 데이터가 생성 중이거나 데이터가 없습니다. 이전 데이터를 확인하시겠습니까?`}
+          confirmText="예"
+          cancelText="아니오"
+          onConfirm={handleLoadPreviousData}
+          onCancel={handleCancelNoDataDialog}
+        />
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="sector-detail-container">
@@ -1391,6 +1476,17 @@ const SectorDetail: React.FC = () => {
         onDateSelect={handleDateSelect}
         selectedDate={selectedDate || getSeoulDateString()}
         position={calendarPosition}
+      />
+
+      {/* 데이터 없음 확인 다이얼로그 */}
+      <ConfirmDialog
+        isOpen={showNoDataDialog}
+        title="데이터 없음"
+        message={`${noDataDate} 일자의 데이터가 생성 중이거나 데이터가 없습니다. 이전 데이터를 확인하시겠습니까?`}
+        confirmText="예"
+        cancelText="아니오"
+        onConfirm={handleLoadPreviousData}
+        onCancel={handleCancelNoDataDialog}
       />
     </div>
   );
